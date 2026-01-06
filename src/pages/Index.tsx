@@ -65,6 +65,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCreateOrderDialogOpen, setIsCreateOrderDialogOpen] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState<Order['status'] | 'all'>('all');
 
   const inventoryData: InventoryItem[] = [
@@ -115,6 +116,22 @@ const Index = () => {
       )
     );
     toast.success('Статус заказа обновлён');
+  };
+
+  const handleCreateOrder = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newOrder: Order = {
+      id: `ORD-${1005 + ordersData.length}`,
+      customerName: formData.get('customerName') as string,
+      items: parseInt(formData.get('items') as string) || 1,
+      total: parseInt(formData.get('total') as string) || 0,
+      status: 'pending',
+      date: new Date().toISOString().split('T')[0],
+    };
+    setOrdersData(prev => [newOrder, ...prev]);
+    toast.success('Заказ успешно создан');
+    setIsCreateOrderDialogOpen(false);
   };
 
   return (
@@ -455,10 +472,37 @@ const Index = () => {
                 <h2 className="text-3xl font-bold text-foreground">Заказы</h2>
                 <p className="text-muted-foreground mt-1">Управление заказами клиентов</p>
               </div>
-              <Button className="gap-2">
-                <Icon name="Plus" size={18} />
-                Создать заказ
-              </Button>
+              <Dialog open={isCreateOrderDialogOpen} onOpenChange={setIsCreateOrderDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Icon name="Plus" size={18} />
+                    Создать заказ
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Новый заказ</DialogTitle>
+                    <DialogDescription>Создайте заказ для клиента</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateOrder} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="customerName">Название клиента</Label>
+                      <Input id="customerName" name="customerName" placeholder="ООО 'Компания'" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="items">Количество товаров</Label>
+                        <Input id="items" name="items" type="number" placeholder="1" min="1" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="total">Сумма (₽)</Label>
+                        <Input id="total" name="total" type="number" placeholder="0" min="0" required />
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full">Создать заказ</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <Card>
