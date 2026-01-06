@@ -88,19 +88,92 @@ def handler(event: dict, context) -> dict:
             if body.get('deadline_date'):
                 deadline = body.get('deadline_date') + ' ' + body.get('deadline_time', '00:00')
             
+            contractor_id = None
+            contractor_name = body.get('contractor_name')
+            if contractor_name:
+                parts = contractor_name.split()
+                surname = parts[0] if len(parts) > 0 else ''
+                name = parts[1] if len(parts) > 1 else ''
+                patronymic = parts[2] if len(parts) > 2 else ''
+                
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.contractors (surname, name, patronymic)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT DO NOTHING
+                    RETURNING id
+                """, (surname, name, patronymic))
+                result_row = cursor.fetchone()
+                if result_row:
+                    contractor_id = result_row['id']
+                else:
+                    cursor.execute(f"""
+                        SELECT id FROM {SCHEMA}.contractors 
+                        WHERE surname = %s AND name = %s AND patronymic = %s
+                        LIMIT 1
+                    """, (surname, name, patronymic))
+                    result_row = cursor.fetchone()
+                    if result_row:
+                        contractor_id = result_row['id']
+            
+            brand_id = None
+            brand_name = body.get('brand')
+            if brand_name:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.device_brands (name)
+                    VALUES (%s)
+                    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (brand_name,))
+                result_row = cursor.fetchone()
+                if result_row:
+                    brand_id = result_row['id']
+            
+            model_id = None
+            model_name = body.get('model')
+            if model_name and brand_id:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.device_models (brand_id, name)
+                    VALUES (%s, %s)
+                    ON CONFLICT (brand_id, name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (brand_id, model_name))
+                result_row = cursor.fetchone()
+                if result_row:
+                    model_id = result_row['id']
+            
+            device_type_id = None
+            device_type = body.get('device_type')
+            if device_type:
+                type_map = {'phone': 'Смартфон', 'tablet': 'Планшет', 'laptop': 'Ноутбук', 'watch': 'Часы'}
+                device_type_name = type_map.get(device_type, device_type)
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.device_types (name)
+                    VALUES (%s)
+                    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (device_type_name,))
+                result_row = cursor.fetchone()
+                if result_row:
+                    device_type_id = result_row['id']
+            
             cursor.execute(f"""
                 INSERT INTO {SCHEMA}.orders (
-                    order_number, phone, address, serial_number, color, appearance,
+                    order_number, contractor_id, phone, address, serial_number, 
+                    device_type_id, brand_id, model_id, color, appearance,
                     malfunction_description, security_code, device_turns_on, failure_reason,
                     repair_description, return_defective_parts, estimated_price, prepayment,
                     deadline, receiver_comment, status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'new')
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'new')
                 RETURNING id
             """, (
                 order_number,
+                contractor_id,
                 body.get('phone'),
                 body.get('address'),
                 body.get('serial_number'),
+                device_type_id,
+                brand_id,
+                model_id,
                 body.get('color'),
                 body.get('appearance'),
                 body.get('malfunction'),
@@ -123,18 +196,97 @@ def handler(event: dict, context) -> dict:
             body = json.loads(event.get('body', '{}'))
             order_id = body.get('id')
             
+            deadline = None
+            if body.get('deadline_date'):
+                deadline = body.get('deadline_date') + ' ' + body.get('deadline_time', '00:00')
+            elif body.get('deadline'):
+                deadline = body.get('deadline')
+            
+            contractor_id = None
+            contractor_name = body.get('contractor_name')
+            if contractor_name:
+                parts = contractor_name.split()
+                surname = parts[0] if len(parts) > 0 else ''
+                name = parts[1] if len(parts) > 1 else ''
+                patronymic = parts[2] if len(parts) > 2 else ''
+                
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.contractors (surname, name, patronymic)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT DO NOTHING
+                    RETURNING id
+                """, (surname, name, patronymic))
+                result_row = cursor.fetchone()
+                if result_row:
+                    contractor_id = result_row['id']
+                else:
+                    cursor.execute(f"""
+                        SELECT id FROM {SCHEMA}.contractors 
+                        WHERE surname = %s AND name = %s AND patronymic = %s
+                        LIMIT 1
+                    """, (surname, name, patronymic))
+                    result_row = cursor.fetchone()
+                    if result_row:
+                        contractor_id = result_row['id']
+            
+            brand_id = None
+            brand_name = body.get('brand')
+            if brand_name:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.device_brands (name)
+                    VALUES (%s)
+                    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (brand_name,))
+                result_row = cursor.fetchone()
+                if result_row:
+                    brand_id = result_row['id']
+            
+            model_id = None
+            model_name = body.get('model')
+            if model_name and brand_id:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.device_models (brand_id, name)
+                    VALUES (%s, %s)
+                    ON CONFLICT (brand_id, name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (brand_id, model_name))
+                result_row = cursor.fetchone()
+                if result_row:
+                    model_id = result_row['id']
+            
+            device_type_id = None
+            device_type = body.get('device_type')
+            if device_type:
+                type_map = {'phone': 'Смартфон', 'tablet': 'Планшет', 'laptop': 'Ноутбук', 'watch': 'Часы'}
+                device_type_name = type_map.get(device_type, device_type)
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.device_types (name)
+                    VALUES (%s)
+                    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (device_type_name,))
+                result_row = cursor.fetchone()
+                if result_row:
+                    device_type_id = result_row['id']
+            
             cursor.execute(f"""
                 UPDATE {SCHEMA}.orders SET
-                    phone = %s, address = %s, serial_number = %s, color = %s,
+                    contractor_id = %s, phone = %s, address = %s, serial_number = %s,
+                    device_type_id = %s, brand_id = %s, model_id = %s, color = %s,
                     appearance = %s, malfunction_description = %s, security_code = %s,
                     device_turns_on = %s, failure_reason = %s, repair_description = %s,
                     return_defective_parts = %s, estimated_price = %s, prepayment = %s,
                     deadline = %s, receiver_comment = %s, status = %s, updated_at = NOW()
                 WHERE id = %s
             """, (
+                contractor_id,
                 body.get('phone'),
                 body.get('address'),
                 body.get('serial_number'),
+                device_type_id,
+                brand_id,
+                model_id,
                 body.get('color'),
                 body.get('appearance'),
                 body.get('malfunction'),
@@ -144,8 +296,8 @@ def handler(event: dict, context) -> dict:
                 body.get('repair_description'),
                 body.get('return_defective_parts', False),
                 body.get('estimated_price'),
-                body.get('prepayment', 0),
-                body.get('deadline'),
+                body.get('prepayment') or 0,
+                deadline,
                 body.get('receiver_comment'),
                 body.get('status', 'new'),
                 order_id
