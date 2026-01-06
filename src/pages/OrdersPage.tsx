@@ -100,8 +100,24 @@ export default function OrdersPage() {
         url = `${API_URL}?status=${statusCode}`;
       }
       
-      const response = await fetch(url);
+      console.log('Fetching orders from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Orders response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Orders data:', data);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);

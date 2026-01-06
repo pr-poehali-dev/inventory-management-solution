@@ -117,8 +117,26 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
       };
       const type = typeMap[activeDirectory];
       if (type) {
-        const response = await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`);
+        const url = `https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`;
+        console.log('Loading data from:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Data received:', data);
         setItems(data || []);
       }
     } catch (error) {
