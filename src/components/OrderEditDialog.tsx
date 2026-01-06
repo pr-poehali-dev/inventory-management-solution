@@ -487,7 +487,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
             {activeTab === 'history' && (
               <div className="space-y-4 max-w-3xl">
                 <div className="space-y-3">
-                  {history.map((item) => (
+                  {Array.isArray(history) && history.map((item) => (
                     <div key={item.id} className="bg-white border rounded-lg p-3">
                       <div className="flex justify-between items-start mb-2">
                         <div className="text-sm font-medium">{item.action_type}</div>
