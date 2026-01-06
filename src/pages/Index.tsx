@@ -1,12 +1,761 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import Icon from '@/components/ui/icon';
+import { toast } from 'sonner';
+
+type InventoryItem = {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  price: number;
+  supplier: string;
+};
+
+type Order = {
+  id: string;
+  customerName: string;
+  items: number;
+  total: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  date: string;
+};
+
+type Supplier = {
+  id: string;
+  name: string;
+  contact: string;
+  email: string;
+  products: number;
+  rating: number;
+};
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const inventoryData: InventoryItem[] = [
+    { id: '1', name: 'Ноутбук Dell XPS 13', sku: 'LAP-001', category: 'Электроника', quantity: 5, minQuantity: 10, price: 89990, supplier: 'TechSupply' },
+    { id: '2', name: 'Клавиатура Logitech MX', sku: 'KEY-002', category: 'Аксессуары', quantity: 45, minQuantity: 20, price: 8990, supplier: 'OfficeWorld' },
+    { id: '3', name: 'Монитор Samsung 27"', sku: 'MON-003', category: 'Электроника', quantity: 8, minQuantity: 15, price: 24990, supplier: 'TechSupply' },
+    { id: '4', name: 'Мышь Wireless', sku: 'MOU-004', category: 'Аксессуары', quantity: 3, minQuantity: 25, price: 1990, supplier: 'OfficeWorld' },
+    { id: '5', name: 'USB-C Кабель', sku: 'CAB-005', category: 'Кабели', quantity: 120, minQuantity: 50, price: 590, supplier: 'CablesPro' },
+  ];
+
+  const ordersData: Order[] = [
+    { id: 'ORD-1001', customerName: 'ООО "Технологии"', items: 3, total: 125970, status: 'processing', date: '2024-01-06' },
+    { id: 'ORD-1002', customerName: 'ИП Иванов', items: 5, total: 45950, status: 'completed', date: '2024-01-05' },
+    { id: 'ORD-1003', customerName: 'ООО "Офис+"', items: 12, total: 298680, status: 'pending', date: '2024-01-06' },
+    { id: 'ORD-1004', customerName: 'ООО "Старт"', items: 2, total: 51980, status: 'processing', date: '2024-01-04' },
+  ];
+
+  const suppliersData: Supplier[] = [
+    { id: 'SUP-001', name: 'TechSupply', contact: '+7 495 123-45-67', email: 'sales@techsupply.ru', products: 156, rating: 4.8 },
+    { id: 'SUP-002', name: 'OfficeWorld', contact: '+7 812 987-65-43', email: 'info@officeworld.ru', products: 89, rating: 4.5 },
+    { id: 'SUP-003', name: 'CablesPro', contact: '+7 495 555-12-34', email: 'orders@cablespro.ru', products: 234, rating: 4.9 },
+  ];
+
+  const lowStockItems = inventoryData.filter(item => item.quantity < item.minQuantity);
+  const totalInventoryValue = inventoryData.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const pendingOrders = ordersData.filter(order => order.status === 'pending').length;
+
+  const getStatusBadge = (status: Order['status']) => {
+    const variants = {
+      pending: { variant: 'secondary' as const, label: 'Ожидает' },
+      processing: { variant: 'default' as const, label: 'В работе' },
+      completed: { variant: 'outline' as const, label: 'Выполнен' },
+      cancelled: { variant: 'destructive' as const, label: 'Отменён' },
+    };
+    const { variant, label } = variants[status];
+    return <Badge variant={variant}>{label}</Badge>;
+  };
+
+  const handleAddProduct = () => {
+    toast.success('Товар добавлен в инвентарь');
+    setIsAddDialogOpen(false);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 color-black text-black">Добро пожаловать!</h1>
-        <p className="text-xl text-gray-600">тут будет отображаться ваш проект</p>
-      </div>
+    <div className="min-h-screen bg-background flex">
+      <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <Icon name="Package" className="text-primary-foreground" size={24} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-sidebar-foreground">LiveSklad</h1>
+              <p className="text-xs text-muted-foreground">Система управления</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1">
+          {[
+            { id: 'dashboard', icon: 'LayoutDashboard', label: 'Дашборд' },
+            { id: 'inventory', icon: 'Package', label: 'Инвентарь' },
+            { id: 'orders', icon: 'ShoppingCart', label: 'Заказы' },
+            { id: 'suppliers', icon: 'Truck', label: 'Поставщики' },
+            { id: 'analytics', icon: 'BarChart3', label: 'Аналитика' },
+            { id: 'settings', icon: 'Settings', label: 'Настройки' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === item.id
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              }`}
+            >
+              <Icon name={item.icon} size={20} />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+              А
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-sidebar-foreground">Администратор</p>
+              <p className="text-xs text-muted-foreground">admin@livesklad.ru</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="flex-1 p-8 overflow-auto">
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground">Дашборд</h2>
+                <p className="text-muted-foreground mt-1">Обзор основных показателей склада</p>
+              </div>
+              <Button className="gap-2">
+                <Icon name="Plus" size={18} />
+                Быстрое действие
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="hover-scale">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Товаров в наличии</CardTitle>
+                  <Icon name="Package" className="text-primary" size={20} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{inventoryData.length}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Всего позиций</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-scale">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Низкие остатки</CardTitle>
+                  <Icon name="AlertTriangle" className="text-[hsl(var(--warning))]" size={20} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-[hsl(var(--warning))]">{lowStockItems.length}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Требуют пополнения</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-scale">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Стоимость склада</CardTitle>
+                  <Icon name="DollarSign" className="text-[hsl(var(--success))]" size={20} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{(totalInventoryValue / 1000).toFixed(0)}K ₽</div>
+                  <p className="text-xs text-muted-foreground mt-1">Общая стоимость</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-scale">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Заказов в ожидании</CardTitle>
+                  <Icon name="Clock" className="text-secondary" size={20} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{pendingOrders}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Требуют обработки</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {lowStockItems.length > 0 && (
+              <Card className="border-[hsl(var(--warning))] bg-[hsl(var(--warning))]/5">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Icon name="AlertTriangle" className="text-[hsl(var(--warning))]" size={24} />
+                    <CardTitle>Критические уровни товаров</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {lowStockItems.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 bg-card rounded-lg">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-mono font-semibold text-[hsl(var(--warning))]">
+                            {item.quantity} / {item.minQuantity}
+                          </p>
+                          <Button size="sm" variant="outline" className="mt-2">
+                            Создать заказ
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Последние заказы</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {ordersData.slice(0, 3).map((order) => (
+                      <div key={order.id} className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors">
+                        <div>
+                          <p className="font-medium">{order.customerName}</p>
+                          <p className="text-sm text-muted-foreground">{order.id}</p>
+                        </div>
+                        <div className="text-right">
+                          {getStatusBadge(order.status)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Топ поставщики</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {suppliersData.map((supplier) => (
+                      <div key={supplier.id} className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors">
+                        <div>
+                          <p className="font-medium">{supplier.name}</p>
+                          <p className="text-sm text-muted-foreground">{supplier.products} товаров</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Icon name="Star" className="text-[hsl(var(--warning))]" size={16} fill="currentColor" />
+                          <span className="font-semibold">{supplier.rating}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'inventory' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground">Инвентарь</h2>
+                <p className="text-muted-foreground mt-1">Управление товарами на складе</p>
+              </div>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Icon name="Plus" size={18} />
+                    Добавить товар
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Новый товар</DialogTitle>
+                    <DialogDescription>Добавьте товар в инвентарь склада</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Название товара</Label>
+                      <Input placeholder="Например: Ноутбук Dell XPS 13" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>SKU</Label>
+                        <Input placeholder="LAP-001" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Категория</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="electronics">Электроника</SelectItem>
+                            <SelectItem value="accessories">Аксессуары</SelectItem>
+                            <SelectItem value="cables">Кабели</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Количество</Label>
+                        <Input type="number" placeholder="0" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Мин. остаток</Label>
+                        <Input type="number" placeholder="0" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Цена (₽)</Label>
+                      <Input type="number" placeholder="0" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Поставщик</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suppliersData.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleAddProduct} className="w-full">Добавить товар</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 relative">
+                    <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      placeholder="Поиск по названию или SKU..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button variant="outline" className="gap-2">
+                    <Icon name="Filter" size={18} />
+                    Фильтры
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Товар</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Категория</TableHead>
+                      <TableHead>Остаток</TableHead>
+                      <TableHead>Цена</TableHead>
+                      <TableHead>Поставщик</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inventoryData.map((item) => (
+                      <TableRow key={item.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="font-mono text-sm">{item.sku}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {item.quantity < item.minQuantity && (
+                              <Icon name="AlertCircle" className="text-[hsl(var(--warning))]" size={16} />
+                            )}
+                            <span className={`font-mono font-semibold ${item.quantity < item.minQuantity ? 'text-[hsl(var(--warning))]' : ''}`}>
+                              {item.quantity}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono">{item.price.toLocaleString('ru-RU')} ₽</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{item.supplier}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm">
+                            <Icon name="MoreVertical" size={18} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground">Заказы</h2>
+                <p className="text-muted-foreground mt-1">Управление заказами клиентов</p>
+              </div>
+              <Button className="gap-2">
+                <Icon name="Plus" size={18} />
+                Создать заказ
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="pt-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Номер заказа</TableHead>
+                      <TableHead>Клиент</TableHead>
+                      <TableHead>Товаров</TableHead>
+                      <TableHead>Сумма</TableHead>
+                      <TableHead>Статус</TableHead>
+                      <TableHead>Дата</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ordersData.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-muted/50">
+                        <TableCell className="font-mono font-semibold">{order.id}</TableCell>
+                        <TableCell className="font-medium">{order.customerName}</TableCell>
+                        <TableCell>{order.items}</TableCell>
+                        <TableCell className="font-mono font-semibold">{order.total.toLocaleString('ru-RU')} ₽</TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">{order.date}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm">
+                            <Icon name="Eye" size={18} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'suppliers' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground">Поставщики</h2>
+                <p className="text-muted-foreground mt-1">База данных поставщиков</p>
+              </div>
+              <Button className="gap-2">
+                <Icon name="Plus" size={18} />
+                Добавить поставщика
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {suppliersData.map((supplier) => (
+                <Card key={supplier.id} className="hover-scale">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>{supplier.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">{supplier.products} товаров</p>
+                      </div>
+                      <div className="flex items-center gap-1 bg-[hsl(var(--warning))]/10 px-2 py-1 rounded">
+                        <Icon name="Star" className="text-[hsl(var(--warning))]" size={14} fill="currentColor" />
+                        <span className="text-sm font-semibold">{supplier.rating}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Icon name="Phone" size={16} className="text-muted-foreground" />
+                      <span>{supplier.contact}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Icon name="Mail" size={16} className="text-muted-foreground" />
+                      <span>{supplier.email}</span>
+                    </div>
+                    <div className="pt-2">
+                      <Button variant="outline" className="w-full" size="sm">
+                        Просмотреть детали
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Аналитика</h2>
+              <p className="text-muted-foreground mt-1">Статистика и отчеты</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Движение товаров</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-center justify-center bg-muted/30 rounded-lg">
+                    <div className="text-center">
+                      <Icon name="BarChart3" size={48} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">График движения товаров</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Распределение по категориям</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-center justify-center bg-muted/30 rounded-lg">
+                    <div className="text-center">
+                      <Icon name="PieChart" size={48} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Диаграмма категорий</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Топ-5 товаров</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {inventoryData.slice(0, 5).map((item, idx) => (
+                      <div key={item.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">{item.category}</p>
+                          </div>
+                        </div>
+                        <p className="font-mono font-semibold">{item.quantity}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Выручка по месяцам</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-center justify-center bg-muted/30 rounded-lg">
+                    <div className="text-center">
+                      <Icon name="TrendingUp" size={48} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">График выручки</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Настройки</h2>
+              <p className="text-muted-foreground mt-1">Конфигурация системы</p>
+            </div>
+
+            <Tabs defaultValue="general" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="general">Общие</TabsTrigger>
+                <TabsTrigger value="categories">Категории</TabsTrigger>
+                <TabsTrigger value="users">Пользователи</TabsTrigger>
+                <TabsTrigger value="notifications">Уведомления</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="general" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Основные настройки</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Название компании</Label>
+                      <Input defaultValue="ООО 'Моя компания'" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email для уведомлений</Label>
+                      <Input type="email" defaultValue="admin@company.ru" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Телефон</Label>
+                      <Input defaultValue="+7 (495) 123-45-67" />
+                    </div>
+                    <Button>Сохранить изменения</Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="categories" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Категории товаров</CardTitle>
+                      <Button size="sm" className="gap-2">
+                        <Icon name="Plus" size={16} />
+                        Добавить
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {['Электроника', 'Аксессуары', 'Кабели', 'Мебель', 'Канцелярия'].map((cat) => (
+                        <div key={cat} className="flex items-center justify-between p-3 hover:bg-muted rounded-lg">
+                          <span className="font-medium">{cat}</span>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Icon name="Pencil" size={16} />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Icon name="Trash2" size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="users" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Пользователи системы</CardTitle>
+                      <Button size="sm" className="gap-2">
+                        <Icon name="UserPlus" size={16} />
+                        Пригласить
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Пользователь</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Роль</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium">Администратор</TableCell>
+                          <TableCell>admin@livesklad.ru</TableCell>
+                          <TableCell><Badge>Админ</Badge></TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm">
+                              <Icon name="MoreVertical" size={18} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="notifications" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Настройки уведомлений</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 hover:bg-muted rounded-lg">
+                      <div>
+                        <p className="font-medium">Критические остатки товаров</p>
+                        <p className="text-sm text-muted-foreground">Уведомление при низком уровне товара</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center justify-between p-3 hover:bg-muted rounded-lg">
+                      <div>
+                        <p className="font-medium">Новые заказы</p>
+                        <p className="text-sm text-muted-foreground">Уведомление о новых заказах</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center justify-between p-3 hover:bg-muted rounded-lg">
+                      <div>
+                        <p className="font-medium">Автоматическое создание заказов</p>
+                        <p className="text-sm text-muted-foreground">Автоматически создавать заказы при критических остатках</p>
+                      </div>
+                      <input type="checkbox" className="w-5 h-5" />
+                    </div>
+                    <Button>Сохранить настройки</Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
