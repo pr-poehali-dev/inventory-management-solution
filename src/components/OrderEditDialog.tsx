@@ -499,7 +499,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                                   className="w-full text-right text-sm"
                                 />
                               </td>
-                              <td className="p-2 text-right text-sm font-medium">{(item.total || 0).toFixed(2)}</td>
+                              <td className="p-2 text-right text-sm font-medium">{(Number(item.total) || 0).toFixed(2)}</td>
                               <td className="p-2">
                                 <Button
                                   variant="ghost"
@@ -518,7 +518,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                     <div className="bg-slate-50 p-4 rounded-lg space-y-2 max-w-md ml-auto">
                       <div className="flex justify-between text-sm">
                         <span>Итого товаров и услуг:</span>
-                        <span className="font-medium">{(subtotal || 0).toFixed(2)} ₽</span>
+                        <span className="font-medium">{(Number(subtotal) || 0).toFixed(2)} ₽</span>
                       </div>
                       
                       <div className="flex gap-2 items-center">
@@ -543,13 +543,13 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                       {discount > 0 && (
                         <div className="flex justify-between text-sm text-red-600">
                           <span>Скидка:</span>
-                          <span>-{(discount || 0).toFixed(2)} ₽</span>
+                          <span>-{(Number(discount) || 0).toFixed(2)} ₽</span>
                         </div>
                       )}
                       
                       <div className="flex justify-between text-base font-bold border-t pt-2">
                         <span>К оплате:</span>
-                        <span>{(total || 0).toFixed(2)} ₽</span>
+                        <span>{(Number(total) || 0).toFixed(2)} ₽</span>
                       </div>
                     </div>
 
