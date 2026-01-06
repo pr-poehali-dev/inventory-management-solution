@@ -17,9 +17,6 @@ type OrderEditDialogProps = {
   onSave: (data: any) => void;
 };
 
-const ORDERS_API = 'https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76daedcb4';
-const DIRECTORIES_API = 'https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76';
-
 export default function OrderEditDialog({ order, open, onClose, onSave }: OrderEditDialogProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'materials'>('info');
   

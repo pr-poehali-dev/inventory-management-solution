@@ -1,6 +1,3 @@
 {
-  "settings-api": "https://functions.poehali.dev/6123a2c4-f406-4686-ab76-a98c948f8bd8",
-  "directories-api": "https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76",
-  "orders-api": "https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76daedcb4",
-  "shop-api": "https://functions.poehali.dev/ab255459-3f5e-417e-bc1c-6cfd39b319b0"
+  "db-query": "https://functions.poehali.dev/390a9a7a-3d45-4867-a2a3-b9b364f2e2f7"
 }

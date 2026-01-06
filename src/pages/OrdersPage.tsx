@@ -12,6 +12,7 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 import OrderForm from '@/components/OrderForm';
 import OrderEditDialog from '@/components/OrderEditDialog';
+import { getOrders, getOrderById, deleteOrder, getStatuses, updateOrder } from '@/lib/db';
 
 type Order = {
   id: number;
@@ -23,9 +24,6 @@ type Order = {
   created_at: string;
   estimated_price?: number;
 };
-
-const API_URL = 'https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76daedcb4';
-const SETTINGS_API_URL = 'https://functions.poehali.dev/6123a2c4-f406-4686-ab76-a98c948f8bd8';
 
 type OrderStatus = {
   id: number;
@@ -153,13 +151,9 @@ export default function OrdersPage() {
     if (!confirm('Удалить этот заказ?')) return;
 
     try {
-      const success = await deleteOrder(id);
-      if (success) {
-        toast.success('Заказ удалён');
-        fetchOrders();
-      } else {
-        toast.error('Ошибка удаления заказа');
-      }
+      await deleteOrder(id);
+      toast.success('Заказ удалён');
+      fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
       toast.error('Ошибка удаления заказа');
@@ -311,20 +305,7 @@ export default function OrdersPage() {
         onClose={() => setShowEditDialog(false)}
         onSave={async (formData) => {
           try {
-            await fetch(API_URL, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...formData, id: orderToEdit.id }),
-            });
-            
-            if (formData.items && formData.items.length > 0) {
-              await fetch(`${API_URL}?orderId=${orderToEdit.id}&action=items`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: formData.items }),
-              });
-            }
-            
+            await updateOrder(orderToEdit.id, formData);
             toast.success('Заказ обновлён');
             setShowEditDialog(false);
             fetchOrders();

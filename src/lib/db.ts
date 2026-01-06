@@ -1,25 +1,26 @@
-import { getDbClient } from '@/lib/dbClient';
+// Прямая работа с PostgreSQL через backend
+const DB_QUERY_URL = 'https://functions.poehali.dev/390a9a7a-3d45-4867-a2a3-b9b364f2e2f7';
+
+// Универсальная функция для выполнения SQL-запросов через backend
+async function executeQuery(sql: string, params: any[] = []): Promise<any> {
+  const response = await fetch(DB_QUERY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || `Database error: ${response.status}`);
+  }
+  
+  return response.json();
+}
 
 const SCHEMA = 't_p72562668_inventory_management';
 
-export interface QueryResult<T = any> {
-  rows: T[];
-  error?: string;
-}
-
-export async function query<T = any>(sql: string, params?: any[]): Promise<QueryResult<T>> {
-  try {
-    const client = getDbClient();
-    const result = await client.query(sql, params);
-    return { rows: result.rows };
-  } catch (error) {
-    console.error('Database query error:', error);
-    return { rows: [], error: error instanceof Error ? error.message : 'Unknown error' };
-  }
-}
-
-// Справочники
-export async function getDirectoryItems(type: string): Promise<any[]> {
+// СПРАВОЧНИКИ
+export async function getDirectoryItems(type: string) {
   const tableMap: Record<string, string> = {
     contractors: 'contractors',
     products: 'products',
@@ -35,11 +36,12 @@ export async function getDirectoryItems(type: string): Promise<any[]> {
   const tableName = tableMap[type];
   if (!tableName) return [];
 
-  const result = await query(`SELECT * FROM ${SCHEMA}.${tableName} ORDER BY id DESC LIMIT 100`);
-  return result.rows;
+  const sql = `SELECT * FROM ${SCHEMA}.${tableName} ORDER BY id DESC LIMIT 100`;
+  const result = await executeQuery(sql);
+  return result.rows || [];
 }
 
-export async function createDirectoryItem(type: string, data: Record<string, any>): Promise<number | null> {
+export async function createDirectoryItem(type: string, data: Record<string, any>) {
   const tableMap: Record<string, string> = {
     contractors: 'contractors',
     products: 'products',
@@ -52,7 +54,7 @@ export async function createDirectoryItem(type: string, data: Record<string, any
   };
 
   const tableName = tableMap[type];
-  if (!tableName) return null;
+  if (!tableName) throw new Error('Invalid directory type');
 
   const fields = Object.keys(data);
   const values = Object.values(data);
@@ -64,11 +66,11 @@ export async function createDirectoryItem(type: string, data: Record<string, any
     RETURNING id
   `;
 
-  const result = await query(sql, values);
-  return result.rows[0]?.id || null;
+  const result = await executeQuery(sql, values);
+  return result.rows[0]?.id;
 }
 
-export async function updateDirectoryItem(type: string, id: number, data: Record<string, any>): Promise<boolean> {
+export async function updateDirectoryItem(type: string, id: number, data: Record<string, any>) {
   const tableMap: Record<string, string> = {
     contractors: 'contractors',
     products: 'products',
@@ -81,7 +83,7 @@ export async function updateDirectoryItem(type: string, id: number, data: Record
   };
 
   const tableName = tableMap[type];
-  if (!tableName) return false;
+  if (!tableName) throw new Error('Invalid directory type');
 
   const fields = Object.keys(data);
   const values = Object.values(data);
@@ -93,11 +95,11 @@ export async function updateDirectoryItem(type: string, id: number, data: Record
     WHERE id = $${fields.length + 1}
   `;
 
-  const result = await query(sql, [...values, id]);
-  return !result.error;
+  await executeQuery(sql, [...values, id]);
+  return true;
 }
 
-export async function deleteDirectoryItem(type: string, id: number): Promise<boolean> {
+export async function deleteDirectoryItem(type: string, id: number) {
   const tableMap: Record<string, string> = {
     contractors: 'contractors',
     products: 'products',
@@ -110,20 +112,20 @@ export async function deleteDirectoryItem(type: string, id: number): Promise<boo
   };
 
   const tableName = tableMap[type];
-  if (!tableName) return false;
+  if (!tableName) throw new Error('Invalid directory type');
 
   const sql = `DELETE FROM ${SCHEMA}.${tableName} WHERE id = $1`;
-  const result = await query(sql, [id]);
-  return !result.error;
+  await executeQuery(sql, [id]);
+  return true;
 }
 
-// Заказы
-export async function getOrders(statusFilter?: string): Promise<any[]> {
+// ЗАКАЗЫ
+export async function getOrders(statusFilter?: string) {
   let sql = `
     SELECT o.id, o.order_number, o.status, o.created_at, o.estimated_price,
            c.surname || ' ' || c.name as contractor_name,
            o.phone,
-           db.name || ' ' || dm.name as device
+           COALESCE(db.name || ' ' || dm.name, '') as device
     FROM ${SCHEMA}.orders o
     LEFT JOIN ${SCHEMA}.contractors c ON o.contractor_id = c.id
     LEFT JOIN ${SCHEMA}.device_brands db ON o.brand_id = db.id
@@ -136,11 +138,11 @@ export async function getOrders(statusFilter?: string): Promise<any[]> {
 
   sql += ' ORDER BY o.created_at DESC LIMIT 100';
 
-  const result = await query(sql);
-  return result.rows;
+  const result = await executeQuery(sql);
+  return result.rows || [];
 }
 
-export async function getOrderById(id: number): Promise<any | null> {
+export async function getOrderById(id: number) {
   const sql = `
     SELECT o.*, 
            c.surname || ' ' || c.name || ' ' || COALESCE(c.patronymic, '') as contractor_name,
@@ -155,30 +157,48 @@ export async function getOrderById(id: number): Promise<any | null> {
     WHERE o.id = $1
   `;
 
-  const result = await query(sql, [id]);
+  const result = await executeQuery(sql, [id]);
   return result.rows[0] || null;
 }
 
-export async function deleteOrder(id: number): Promise<boolean> {
-  try {
-    await query(`DELETE FROM ${SCHEMA}.order_accessories WHERE order_id = $1`, [id]);
-    await query(`DELETE FROM ${SCHEMA}.order_items WHERE order_id = $1`, [id]);
-    await query(`DELETE FROM ${SCHEMA}.order_history WHERE order_id = $1`, [id]);
-    await query(`DELETE FROM ${SCHEMA}.orders WHERE id = $1`, [id]);
-    return true;
-  } catch (error) {
-    return false;
+export async function updateOrder(id: number, data: Record<string, any>) {
+  const fields = Object.keys(data).filter(k => k !== 'items');
+  const values = fields.map(k => data[k]);
+  const setClause = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
+
+  const sql = `
+    UPDATE ${SCHEMA}.orders
+    SET ${setClause}, updated_at = NOW()
+    WHERE id = $${fields.length + 1}
+  `;
+
+  await executeQuery(sql, [...values, id]);
+  
+  // Обновляем позиции заказа если есть
+  if (data.items && Array.isArray(data.items)) {
+    await saveOrderItems(id, data.items);
   }
+  
+  return true;
 }
 
-// Статусы
-export async function getStatuses(): Promise<any[]> {
-  const result = await query(`SELECT * FROM ${SCHEMA}.order_statuses WHERE is_active = true ORDER BY sort_order`);
-  return result.rows;
+export async function deleteOrder(id: number) {
+  await executeQuery(`DELETE FROM ${SCHEMA}.order_accessories WHERE order_id = $1`, [id]);
+  await executeQuery(`DELETE FROM ${SCHEMA}.order_items WHERE order_id = $1`, [id]);
+  await executeQuery(`DELETE FROM ${SCHEMA}.order_history WHERE order_id = $1`, [id]);
+  await executeQuery(`DELETE FROM ${SCHEMA}.orders WHERE id = $1`, [id]);
+  return true;
 }
 
-// История заказа
-export async function getOrderHistory(orderId: number): Promise<any[]> {
+// СТАТУСЫ
+export async function getStatuses() {
+  const sql = `SELECT * FROM ${SCHEMA}.order_statuses WHERE is_active = true ORDER BY sort_order`;
+  const result = await executeQuery(sql);
+  return result.rows || [];
+}
+
+// ИСТОРИЯ ЗАКАЗА
+export async function getOrderHistory(orderId: number) {
   const sql = `
     SELECT h.*, u.full_name as user_name
     FROM ${SCHEMA}.order_history h
@@ -186,39 +206,36 @@ export async function getOrderHistory(orderId: number): Promise<any[]> {
     WHERE h.order_id = $1
     ORDER BY h.created_at DESC
   `;
-  const result = await query(sql, [orderId]);
-  return result.rows;
+  const result = await executeQuery(sql, [orderId]);
+  return result.rows || [];
 }
 
-export async function addOrderHistory(orderId: number, actionType: string, description: string): Promise<boolean> {
+export async function addOrderHistory(orderId: number, actionType: string, description: string) {
   const sql = `
     INSERT INTO ${SCHEMA}.order_history (order_id, action_type, description)
     VALUES ($1, $2, $3)
   `;
-  const result = await query(sql, [orderId, actionType, description]);
-  return !result.error;
+  await executeQuery(sql, [orderId, actionType, description]);
+  return true;
 }
 
-// Позиции заказа
-export async function getOrderItems(orderId: number): Promise<any[]> {
+// ПОЗИЦИИ ЗАКАЗА
+export async function getOrderItems(orderId: number) {
   const sql = `SELECT * FROM ${SCHEMA}.order_items WHERE order_id = $1 ORDER BY created_at`;
-  const result = await query(sql, [orderId]);
-  return result.rows;
+  const result = await executeQuery(sql, [orderId]);
+  return result.rows || [];
 }
 
-export async function saveOrderItems(orderId: number, items: any[]): Promise<boolean> {
-  try {
-    await query(`DELETE FROM ${SCHEMA}.order_items WHERE order_id = $1`, [orderId]);
+export async function saveOrderItems(orderId: number, items: any[]) {
+  await executeQuery(`DELETE FROM ${SCHEMA}.order_items WHERE order_id = $1`, [orderId]);
 
-    for (const item of items) {
-      await query(
-        `INSERT INTO ${SCHEMA}.order_items (order_id, item_type, item_id, item_name, quantity, price, warranty_months, total)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [orderId, item.item_type, item.item_id, item.item_name, item.quantity, item.price, item.warranty_months, item.total]
-      );
-    }
-    return true;
-  } catch (error) {
-    return false;
+  for (const item of items) {
+    await executeQuery(
+      `INSERT INTO ${SCHEMA}.order_items (order_id, item_type, item_id, item_name, quantity, price, warranty_months, total)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [orderId, item.item_type, item.item_id, item.item_name, item.quantity, item.price, item.warranty_months || 0, item.total]
+    );
   }
+  
+  return true;
 }

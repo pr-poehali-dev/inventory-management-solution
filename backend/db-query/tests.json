@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "Test SELECT query",
+      "method": "POST",
+      "body": {
+        "sql": "SELECT 1 as test"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "rows": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
