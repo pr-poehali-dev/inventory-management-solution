@@ -231,119 +231,178 @@ const Index = () => {
       } : null;
     }).filter(Boolean) || [];
 
+    const totalSum = order.total;
+    const totalQuantity = order.items;
+
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Заказ ${order.id}</title>
+        <title>Расходная накладная ${order.id}</title>
         <style>
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
           body {
-            font-family: 'Inter', Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            color: #1a1f2c;
-          }
-          .header {
-            border-bottom: 3px solid #0EA5E9;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-          }
-          .header h1 {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            color: #000;
+            line-height: 1.2;
             margin: 0;
-            color: #0EA5E9;
-            font-size: 32px;
+            padding: 15px;
           }
-          .header p {
+          .document-header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+          }
+          .document-title {
+            font-size: 16pt;
+            font-weight: bold;
             margin: 5px 0;
-            color: #666;
           }
-          .info-section {
+          .document-number {
+            font-size: 13pt;
+            margin: 5px 0;
+          }
+          .organization-block {
+            margin-bottom: 15px;
+            border: 1px solid #000;
+            padding: 10px;
+          }
+          .org-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            margin: 3px 0;
+            font-size: 10pt;
+          }
+          .org-label {
+            font-weight: bold;
+          }
+          .org-value {
+            border-bottom: 1px solid #000;
+            min-height: 18px;
+          }
+          .parties-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            gap: 15px;
+            margin-bottom: 15px;
           }
-          .info-block {
-            margin-bottom: 10px;
+          .party-block {
+            border: 1px solid #000;
+            padding: 8px;
           }
-          .info-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            margin-bottom: 5px;
+          .party-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 11pt;
           }
-          .info-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1f2c;
+          .party-row {
+            margin: 4px 0;
+            font-size: 9pt;
+          }
+          .party-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 80px;
+          }
+          .party-value {
+            border-bottom: 1px solid #000;
+            display: inline-block;
+            flex: 1;
           }
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
+            margin: 15px 0;
+            font-size: 9pt;
           }
           th {
-            background: #1a1f2c;
-            color: white;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
+            background: #f0f0f0;
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9pt;
           }
           td {
-            padding: 12px;
-            border-bottom: 1px solid #e5e7eb;
+            border: 1px solid #000;
+            padding: 6px 4px;
           }
-          tr:hover {
-            background: #f8f9fa;
+          .text-center {
+            text-align: center;
           }
           .text-right {
             text-align: right;
           }
-          .sku {
-            font-family: 'Courier New', monospace;
-            color: #666;
-            font-size: 12px;
+          .text-left {
+            text-align: left;
           }
-          .total-section {
-            text-align: right;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 30px;
-          }
+          .goods-table th:nth-child(1) { width: 30px; }
+          .goods-table th:nth-child(2) { width: 250px; }
+          .goods-table th:nth-child(3) { width: 80px; }
+          .goods-table th:nth-child(4) { width: 60px; }
+          .goods-table th:nth-child(5) { width: 80px; }
+          .goods-table th:nth-child(6) { width: 100px; }
           .total-row {
-            display: flex;
-            justify-content: flex-end;
-            gap: 40px;
-            margin: 10px 0;
-            font-size: 18px;
-          }
-          .total-row.final {
-            font-size: 24px;
             font-weight: bold;
-            color: #0EA5E9;
-            border-top: 2px solid #0EA5E9;
-            padding-top: 10px;
-            margin-top: 10px;
+            background: #f9f9f9;
           }
-          .footer {
-            text-align: center;
+          .signatures-section {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+          }
+          .signature-block {
+            margin: 15px 0;
+          }
+          .signature-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 10pt;
+          }
+          .signature-line {
+            display: grid;
+            grid-template-columns: 120px 1fr 150px;
+            gap: 10px;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 9pt;
+          }
+          .signature-label {
+            font-weight: bold;
+          }
+          .signature-field {
+            border-bottom: 1px solid #000;
+            height: 20px;
+          }
+          .stamp-area {
+            border: 1px dashed #666;
+            height: 80px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 9pt;
+          }
+          .footer-note {
+            font-size: 8pt;
             color: #666;
-            font-size: 12px;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 20px;
-            margin-top: 40px;
+            margin-top: 20px;
+            text-align: center;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
           }
           @media print {
             body {
-              margin: 0;
-              padding: 20px;
+              padding: 0;
             }
             .no-print {
               display: none;
@@ -352,79 +411,157 @@ const Index = () => {
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>LiveSklad</h1>
-          <p>Система управления складом</p>
+        <div class="document-header">
+          <div class="document-title">РАСХОДНАЯ НАКЛАДНАЯ</div>
+          <div class="document-number">№ ${order.id} от ${new Date(order.date).toLocaleDateString('ru-RU')}</div>
         </div>
 
-        <div class="info-section">
-          <div>
-            <div class="info-block">
-              <div class="info-label">Номер заказа</div>
-              <div class="info-value">${order.id}</div>
-            </div>
-            <div class="info-block">
-              <div class="info-label">Клиент</div>
-              <div class="info-value">${order.customerName}</div>
-            </div>
+        <div class="organization-block">
+          <div class="org-row">
+            <div class="org-label">Организация:</div>
+            <div class="org-value">ООО "LiveSklad"</div>
           </div>
-          <div>
-            <div class="info-block">
-              <div class="info-label">Дата создания</div>
-              <div class="info-value">${new Date(order.date).toLocaleDateString('ru-RU')}</div>
-            </div>
-            <div class="info-block">
-              <div class="info-label">Статус</div>
-              <div class="info-value">${{
-                pending: 'Ожидает',
-                processing: 'В работе',
-                completed: 'Выполнен',
-                cancelled: 'Отменён'
-              }[order.status]}</div>
-            </div>
+          <div class="org-row">
+            <div class="org-label">ИНН/КПП:</div>
+            <div class="org-value">7700000000 / 770001001</div>
+          </div>
+          <div class="org-row">
+            <div class="org-label">Адрес:</div>
+            <div class="org-value">г. Москва, ул. Складская, д. 1</div>
+          </div>
+          <div class="org-row">
+            <div class="org-label">Телефон:</div>
+            <div class="org-value">+7 (495) 123-45-67</div>
           </div>
         </div>
 
-        <table>
+        <div class="parties-section">
+          <div class="party-block">
+            <div class="party-title">Поставщик (Грузоотправитель)</div>
+            <div class="party-row">
+              <span class="party-label">Организация:</span>
+              <span class="party-value">ООО "LiveSklad"</span>
+            </div>
+            <div class="party-row">
+              <span class="party-label">Адрес:</span>
+              <span class="party-value">г. Москва, ул. Складская, д. 1</span>
+            </div>
+            <div class="party-row">
+              <span class="party-label">ИНН:</span>
+              <span class="party-value">7700000000</span>
+            </div>
+          </div>
+          
+          <div class="party-block">
+            <div class="party-title">Покупатель (Грузополучатель)</div>
+            <div class="party-row">
+              <span class="party-label">Организация:</span>
+              <span class="party-value">${order.customerName}</span>
+            </div>
+            <div class="party-row">
+              <span class="party-label">Адрес:</span>
+              <span class="party-value">_______________________</span>
+            </div>
+            <div class="party-row">
+              <span class="party-label">ИНН:</span>
+              <span class="party-value">_______________________</span>
+            </div>
+          </div>
+        </div>
+
+        <table class="goods-table">
           <thead>
             <tr>
-              <th>№</th>
-              <th>Товар</th>
-              <th class="text-right">Цена</th>
-              <th class="text-right">Количество</th>
-              <th class="text-right">Сумма</th>
+              <th rowspan="2">№</th>
+              <th rowspan="2">Наименование товара</th>
+              <th rowspan="2">Артикул</th>
+              <th rowspan="2">Ед.<br>изм.</th>
+              <th colspan="2">Количество</th>
+              <th rowspan="2">Цена,<br>руб.</th>
+              <th rowspan="2">Сумма,<br>руб.</th>
+            </tr>
+            <tr>
+              <th>По<br>накладной</th>
+              <th>По<br>факту</th>
             </tr>
           </thead>
           <tbody>
             ${itemsDetails.map((item: any, idx: number) => `
               <tr>
-                <td>${idx + 1}</td>
-                <td>
-                  <div>${item.name}</div>
-                  <div class="sku">SKU: ${item.sku}</div>
-                </td>
-                <td class="text-right">${item.price.toLocaleString('ru-RU')} ₽</td>
-                <td class="text-right">${item.quantity}</td>
-                <td class="text-right">${item.sum.toLocaleString('ru-RU')} ₽</td>
+                <td class="text-center">${idx + 1}</td>
+                <td class="text-left">${item.name}</td>
+                <td class="text-center">${item.sku}</td>
+                <td class="text-center">шт</td>
+                <td class="text-center">${item.quantity}</td>
+                <td class="text-center"></td>
+                <td class="text-right">${item.price.toLocaleString('ru-RU')}</td>
+                <td class="text-right">${item.sum.toLocaleString('ru-RU')}</td>
               </tr>
             `).join('')}
+            <tr class="total-row">
+              <td colspan="4" class="text-right">ИТОГО:</td>
+              <td class="text-center">${totalQuantity}</td>
+              <td class="text-center"></td>
+              <td class="text-right">×</td>
+              <td class="text-right">${totalSum.toLocaleString('ru-RU')}</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="7" class="text-right">Всего к оплате:</td>
+              <td class="text-right">${totalSum.toLocaleString('ru-RU')}</td>
+            </tr>
           </tbody>
         </table>
 
-        <div class="total-section">
-          <div class="total-row">
-            <span>Всего товаров:</span>
-            <span>${order.items} шт.</span>
+        <div style="margin: 10px 0; font-size: 10pt;">
+          <strong>Всего наименований:</strong> ${itemsDetails.length}, 
+          <strong>на сумму:</strong> ${totalSum.toLocaleString('ru-RU')} руб.
+        </div>
+
+        <div class="signatures-section">
+          <div>
+            <div class="signature-block">
+              <div class="signature-title">Отпуск разрешил:</div>
+              <div class="signature-line">
+                <span class="signature-label">Должность:</span>
+                <span class="signature-field"></span>
+                <span class="signature-field"></span>
+              </div>
+              <div style="text-align: right; font-size: 8pt; margin-top: -5px;">(подпись, расшифровка)</div>
+            </div>
+
+            <div class="signature-block">
+              <div class="signature-title">Отпустил:</div>
+              <div class="signature-line">
+                <span class="signature-label">Кладовщик:</span>
+                <span class="signature-field"></span>
+                <span class="signature-field"></span>
+              </div>
+              <div style="text-align: right; font-size: 8pt; margin-top: -5px;">(подпись, расшифровка)</div>
+            </div>
           </div>
-          <div class="total-row final">
-            <span>Итого к оплате:</span>
-            <span>${order.total.toLocaleString('ru-RU')} ₽</span>
+
+          <div>
+            <div class="signature-block">
+              <div class="signature-title">Груз получил:</div>
+              <div class="signature-line">
+                <span class="signature-label">Должность:</span>
+                <span class="signature-field"></span>
+                <span class="signature-field"></span>
+              </div>
+              <div style="text-align: right; font-size: 8pt; margin-top: -5px;">(подпись, расшифровка)</div>
+              <div style="margin-top: 10px; font-size: 9pt;">
+                Дата получения: "____" ____________ ${new Date().getFullYear()} г.
+              </div>
+            </div>
+
+            <div class="stamp-area">
+              М.П.
+            </div>
           </div>
         </div>
 
-        <div class="footer">
-          <p>Документ сформирован автоматически в системе LiveSklad</p>
-          <p>${new Date().toLocaleString('ru-RU')}</p>
+        <div class="footer-note">
+          Документ сформирован автоматически в системе LiveSklad | ${new Date().toLocaleString('ru-RU')}
         </div>
 
         <script>
