@@ -50,6 +50,7 @@ type Order = {
   total: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   date: string;
+  itemsList?: {id: string, quantity: number}[];
 };
 
 type Supplier = {
@@ -80,10 +81,10 @@ const Index = () => {
   ];
 
   const [ordersData, setOrdersData] = useState<Order[]>([
-    { id: 'ORD-1001', customerName: 'ООО "Технологии"', items: 3, total: 125970, status: 'processing', date: '2024-01-06' },
-    { id: 'ORD-1002', customerName: 'ИП Иванов', items: 5, total: 45950, status: 'completed', date: '2024-01-05' },
-    { id: 'ORD-1003', customerName: 'ООО "Офис+"', items: 12, total: 298680, status: 'pending', date: '2024-01-06' },
-    { id: 'ORD-1004', customerName: 'ООО "Старт"', items: 2, total: 51980, status: 'processing', date: '2024-01-04' },
+    { id: 'ORD-1001', customerName: 'ООО "Технологии"', items: 3, total: 125970, status: 'processing', date: '2024-01-06', itemsList: [{id: '1', quantity: 1}, {id: '3', quantity: 2}] },
+    { id: 'ORD-1002', customerName: 'ИП Иванов', items: 5, total: 45950, status: 'completed', date: '2024-01-05', itemsList: [{id: '2', quantity: 5}] },
+    { id: 'ORD-1003', customerName: 'ООО "Офис+"', items: 12, total: 298680, status: 'pending', date: '2024-01-06', itemsList: [{id: '1', quantity: 3}, {id: '3', quantity: 9}] },
+    { id: 'ORD-1004', customerName: 'ООО "Старт"', items: 2, total: 51980, status: 'processing', date: '2024-01-04', itemsList: [{id: '3', quantity: 2}] },
   ]);
 
   const suppliersData: Supplier[] = [
@@ -142,6 +143,7 @@ const Index = () => {
       total,
       status: 'pending',
       date: new Date().toISOString().split('T')[0],
+      itemsList: [...selectedItems],
     };
     setOrdersData(prev => [newOrder, ...prev]);
     toast.success('Заказ успешно создан');
@@ -201,6 +203,7 @@ const Index = () => {
       customerName: formData.get('customerName') as string,
       items: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
       total,
+      itemsList: [...selectedItems],
     };
 
     setOrdersData(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
@@ -208,6 +211,233 @@ const Index = () => {
     setIsEditOrderDialogOpen(false);
     setEditingOrder(null);
     setSelectedItems([]);
+  };
+
+  const handlePrintOrder = (order: Order) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Разрешите всплывающие окна для печати');
+      return;
+    }
+
+    const itemsDetails = order.itemsList?.map(item => {
+      const product = inventoryData.find(p => p.id === item.id);
+      return product ? {
+        name: product.name,
+        sku: product.sku,
+        quantity: item.quantity,
+        price: product.price,
+        sum: product.price * item.quantity
+      } : null;
+    }).filter(Boolean) || [];
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Заказ ${order.id}</title>
+        <style>
+          body {
+            font-family: 'Inter', Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            color: #1a1f2c;
+          }
+          .header {
+            border-bottom: 3px solid #0EA5E9;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            margin: 0;
+            color: #0EA5E9;
+            font-size: 32px;
+          }
+          .header p {
+            margin: 5px 0;
+            color: #666;
+          }
+          .info-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+          }
+          .info-block {
+            margin-bottom: 10px;
+          }
+          .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+          }
+          .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1f2c;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+          th {
+            background: #1a1f2c;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+          }
+          td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          tr:hover {
+            background: #f8f9fa;
+          }
+          .text-right {
+            text-align: right;
+          }
+          .sku {
+            font-family: 'Courier New', monospace;
+            color: #666;
+            font-size: 12px;
+          }
+          .total-section {
+            text-align: right;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 30px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 40px;
+            margin: 10px 0;
+            font-size: 18px;
+          }
+          .total-row.final {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0EA5E9;
+            border-top: 2px solid #0EA5E9;
+            padding-top: 10px;
+            margin-top: 10px;
+          }
+          .footer {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+            margin-top: 40px;
+          }
+          @media print {
+            body {
+              margin: 0;
+              padding: 20px;
+            }
+            .no-print {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>LiveSklad</h1>
+          <p>Система управления складом</p>
+        </div>
+
+        <div class="info-section">
+          <div>
+            <div class="info-block">
+              <div class="info-label">Номер заказа</div>
+              <div class="info-value">${order.id}</div>
+            </div>
+            <div class="info-block">
+              <div class="info-label">Клиент</div>
+              <div class="info-value">${order.customerName}</div>
+            </div>
+          </div>
+          <div>
+            <div class="info-block">
+              <div class="info-label">Дата создания</div>
+              <div class="info-value">${new Date(order.date).toLocaleDateString('ru-RU')}</div>
+            </div>
+            <div class="info-block">
+              <div class="info-label">Статус</div>
+              <div class="info-value">${{
+                pending: 'Ожидает',
+                processing: 'В работе',
+                completed: 'Выполнен',
+                cancelled: 'Отменён'
+              }[order.status]}</div>
+            </div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Товар</th>
+              <th class="text-right">Цена</th>
+              <th class="text-right">Количество</th>
+              <th class="text-right">Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsDetails.map((item: any, idx: number) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>
+                  <div>${item.name}</div>
+                  <div class="sku">SKU: ${item.sku}</div>
+                </td>
+                <td class="text-right">${item.price.toLocaleString('ru-RU')} ₽</td>
+                <td class="text-right">${item.quantity}</td>
+                <td class="text-right">${item.sum.toLocaleString('ru-RU')} ₽</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="total-section">
+          <div class="total-row">
+            <span>Всего товаров:</span>
+            <span>${order.items} шт.</span>
+          </div>
+          <div class="total-row final">
+            <span>Итого к оплате:</span>
+            <span>${order.total.toLocaleString('ru-RU')} ₽</span>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Документ сформирован автоматически в системе LiveSklad</p>
+          <p>${new Date().toLocaleString('ru-RU')}</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   return (
@@ -839,13 +1069,24 @@ const Index = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground">{order.date}</TableCell>
                         <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEditOrder(order)}
-                          >
-                            <Icon name="Pencil" size={18} />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditOrder(order)}
+                              title="Редактировать"
+                            >
+                              <Icon name="Pencil" size={18} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handlePrintOrder(order)}
+                              title="Печать"
+                            >
+                              <Icon name="Printer" size={18} />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
