@@ -41,16 +41,29 @@ def handler(event: dict, context) -> dict:
                            c.surname || ' ' || c.name || ' ' || COALESCE(c.patronymic, '') as contractor_name,
                            dt.name as device_type_name,
                            db.name as brand_name,
-                           dm.name as model_name
+                           dm.name as model_name,
+                           ads.name as advertising_source
                     FROM {SCHEMA}.orders o
                     LEFT JOIN {SCHEMA}.contractors c ON o.contractor_id = c.id
                     LEFT JOIN {SCHEMA}.device_types dt ON o.device_type_id = dt.id
                     LEFT JOIN {SCHEMA}.device_brands db ON o.brand_id = db.id
                     LEFT JOIN {SCHEMA}.device_models dm ON o.model_id = dm.id
+                    LEFT JOIN {SCHEMA}.advertising_sources ads ON o.advertising_source_id = ads.id
                     WHERE o.id = %s
                 """, (order_id,))
                 order = cursor.fetchone()
-                result = dict(order) if order else None
+                if order:
+                    result = dict(order)
+                    cursor.execute(f"""
+                        SELECT a.name
+                        FROM {SCHEMA}.order_accessories oa
+                        JOIN {SCHEMA}.accessories a ON oa.accessory_id = a.id
+                        WHERE oa.order_id = %s AND oa.is_present = true
+                    """, (order_id,))
+                    accessories = [row['name'] for row in cursor.fetchall()]
+                    result['accessories'] = accessories
+                else:
+                    result = None
             else:
                 status_filter = event.get('queryStringParameters', {}).get('status')
                 query = f"""
@@ -156,20 +169,34 @@ def handler(event: dict, context) -> dict:
                 if result_row:
                     device_type_id = result_row['id']
             
+            advertising_source_id = None
+            advertising_source = body.get('advertising_source')
+            if advertising_source:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.advertising_sources (name)
+                    VALUES (%s)
+                    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (advertising_source,))
+                result_row = cursor.fetchone()
+                if result_row:
+                    advertising_source_id = result_row['id']
+            
             cursor.execute(f"""
                 INSERT INTO {SCHEMA}.orders (
-                    order_number, contractor_id, phone, address, serial_number, 
+                    order_number, contractor_id, phone, address, advertising_source_id, serial_number, 
                     device_type_id, brand_id, model_id, color, appearance,
                     malfunction_description, security_code, device_turns_on, failure_reason,
                     repair_description, return_defective_parts, estimated_price, prepayment,
                     deadline, receiver_comment, status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'new')
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'new')
                 RETURNING id
             """, (
                 order_number,
                 contractor_id,
                 body.get('phone'),
                 body.get('address'),
+                advertising_source_id,
                 body.get('serial_number'),
                 device_type_id,
                 brand_id,
@@ -189,6 +216,23 @@ def handler(event: dict, context) -> dict:
             ))
             
             order_id = cursor.fetchone()['id']
+            
+            accessories_list = body.get('accessories', [])
+            if accessories_list:
+                for accessory_name in accessories_list:
+                    cursor.execute(f"""
+                        INSERT INTO {SCHEMA}.accessories (name)
+                        VALUES (%s)
+                        ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                        RETURNING id
+                    """, (accessory_name,))
+                    accessory_row = cursor.fetchone()
+                    if accessory_row:
+                        cursor.execute(f"""
+                            INSERT INTO {SCHEMA}.order_accessories (order_id, accessory_id, is_present)
+                            VALUES (%s, %s, true)
+                        """, (order_id, accessory_row['id']))
+            
             conn.commit()
             result = {'id': order_id, 'order_number': order_number}
         
@@ -270,9 +314,22 @@ def handler(event: dict, context) -> dict:
                 if result_row:
                     device_type_id = result_row['id']
             
+            advertising_source_id = None
+            advertising_source = body.get('advertising_source')
+            if advertising_source:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.advertising_sources (name)
+                    VALUES (%s)
+                    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                """, (advertising_source,))
+                result_row = cursor.fetchone()
+                if result_row:
+                    advertising_source_id = result_row['id']
+            
             cursor.execute(f"""
                 UPDATE {SCHEMA}.orders SET
-                    contractor_id = %s, phone = %s, address = %s, serial_number = %s,
+                    contractor_id = %s, phone = %s, address = %s, advertising_source_id = %s, serial_number = %s,
                     device_type_id = %s, brand_id = %s, model_id = %s, color = %s,
                     appearance = %s, malfunction_description = %s, security_code = %s,
                     device_turns_on = %s, failure_reason = %s, repair_description = %s,
@@ -283,6 +340,7 @@ def handler(event: dict, context) -> dict:
                 contractor_id,
                 body.get('phone'),
                 body.get('address'),
+                advertising_source_id,
                 body.get('serial_number'),
                 device_type_id,
                 brand_id,
@@ -302,6 +360,25 @@ def handler(event: dict, context) -> dict:
                 body.get('status', 'new'),
                 order_id
             ))
+            
+            cursor.execute(f"DELETE FROM {SCHEMA}.order_accessories WHERE order_id = %s", (order_id,))
+            
+            accessories_list = body.get('accessories', [])
+            if accessories_list:
+                for accessory_name in accessories_list:
+                    cursor.execute(f"""
+                        INSERT INTO {SCHEMA}.accessories (name)
+                        VALUES (%s)
+                        ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                        RETURNING id
+                    """, (accessory_name,))
+                    accessory_row = cursor.fetchone()
+                    if accessory_row:
+                        cursor.execute(f"""
+                            INSERT INTO {SCHEMA}.order_accessories (order_id, accessory_id, is_present)
+                            VALUES (%s, %s, true)
+                        """, (order_id, accessory_row['id']))
+            
             conn.commit()
             result = {'success': True}
         

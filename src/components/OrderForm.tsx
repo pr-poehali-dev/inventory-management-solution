@@ -13,6 +13,8 @@ type OrderFormProps = {
   onCancel: () => void;
 };
 
+const DIRECTORIES_API = 'https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76';
+
 export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
   const [formData, setFormData] = useState({
     contractor_name: '',
@@ -41,11 +43,49 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
   });
 
   const [appearancePhotos, setAppearancePhotos] = useState<string[]>([]);
+  const [contractors, setContractors] = useState<any[]>([]);
+  const [showContractorsList, setShowContractorsList] = useState(false);
+  
+  useEffect(() => {
+    fetchContractors();
+  }, []);
+  
+  const fetchContractors = async () => {
+    try {
+      const response = await fetch(`${DIRECTORIES_API}?type=contractors`);
+      const data = await response.json();
+      setContractors(data || []);
+    } catch (error) {
+      console.error('Error fetching contractors:', error);
+    }
+  };
 
   useEffect(() => {
     if (order) {
       const deadlineDate = order.deadline ? order.deadline.split(' ')[0] : '';
       const deadlineTime = order.deadline ? order.deadline.split(' ')[1] : '';
+      
+      const deviceTypeMap: Record<string, string> = {
+        'Смартфон': 'phone',
+        'Планшет': 'tablet',
+        'Ноутбук': 'laptop',
+        'Часы': 'watch'
+      };
+      
+      const deviceType = order.device_type_name 
+        ? (deviceTypeMap[order.device_type_name] || order.device_type_name)
+        : (order.device_type || '');
+      
+      let accessoriesList = [];
+      if (Array.isArray(order.accessories)) {
+        accessoriesList = order.accessories;
+      } else if (typeof order.accessories === 'string' && order.accessories) {
+        try {
+          accessoriesList = JSON.parse(order.accessories);
+        } catch {
+          accessoriesList = [];
+        }
+      }
       
       setFormData({
         contractor_name: order.contractor_name || '',
@@ -53,11 +93,11 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
         address: order.address || '',
         advertising_source: order.advertising_source || '',
         serial_number: order.serial_number || '',
-        device_type: order.device_type_name || order.device_type || '',
+        device_type: deviceType,
         brand: order.brand_name || order.brand || '',
         model: order.model_name || order.model || '',
         color: order.color || '',
-        accessories: order.accessories || [],
+        accessories: accessoriesList,
         appearance: order.appearance || '',
         malfunction: order.malfunction_description || order.malfunction || '',
         security_code: order.security_code || '',
@@ -101,15 +141,42 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">КЛИЕНТ</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="relative">
             <Label htmlFor="contractor_name">Контрагент (ФИО) *</Label>
             <Input
               id="contractor_name"
               value={formData.contractor_name}
               onChange={(e) => handleChange('contractor_name', e.target.value)}
+              onFocus={() => setShowContractorsList(true)}
+              onBlur={() => setTimeout(() => setShowContractorsList(false), 200)}
               placeholder="Иванов Иван Иванович"
               required
             />
+            {showContractorsList && contractors.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {contractors
+                  .filter((c) => {
+                    const fullName = `${c.surname} ${c.name} ${c.patronymic || ''}`.toLowerCase();
+                    return fullName.includes(formData.contractor_name.toLowerCase());
+                  })
+                  .slice(0, 10)
+                  .map((contractor) => (
+                    <button
+                      key={contractor.id}
+                      type="button"
+                      className="w-full text-left px-4 py-2 hover:bg-slate-100 text-sm"
+                      onClick={() => {
+                        handleChange('contractor_name', `${contractor.surname} ${contractor.name} ${contractor.patronymic || ''}`.trim());
+                        handleChange('phone', contractor.phone || '');
+                        setShowContractorsList(false);
+                      }}
+                    >
+                      <div className="font-medium">{contractor.surname} {contractor.name} {contractor.patronymic}</div>
+                      {contractor.phone && <div className="text-xs text-slate-500">{contractor.phone}</div>}
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
           <div>
             <Label htmlFor="phone">Телефон *</Label>
