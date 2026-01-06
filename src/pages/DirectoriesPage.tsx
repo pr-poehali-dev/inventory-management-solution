@@ -142,18 +142,21 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
       };
       const type = typeMap[activeDirectory];
       
+      // Добавляем is_active для новых записей
+      const dataToSend = editingItem ? formData : { ...formData, is_active: true };
+      
       if (editingItem) {
         await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}&id=${editingItem.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(dataToSend),
         });
         toast.success('Запись обновлена');
       } else {
         await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(dataToSend),
         });
         toast.success('Запись добавлена');
       }

@@ -41,6 +41,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
   const [users, setUsers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [statuses, setStatuses] = useState<any[]>([]);
   
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [showServiceSearch, setShowServiceSearch] = useState(false);
@@ -52,14 +53,26 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
       fetchUsers();
       fetchProducts();
       fetchServices();
+      fetchStatuses();
     }
   }, [open, order]);
 
   const loadOrderData = async () => {
     if (!order) return;
     
+    // Маппинг кодов статусов в русские названия для отображения
+    const statusCodeToNameMap: Record<string, string> = {
+      'new': 'Новый',
+      'in_progress': 'В работе',
+      'waiting_parts': 'Ожидание запчастей',
+      'ready': 'Готов',
+      'completed': 'Выдан',
+      'canceled': 'Отменён'
+    };
+    
     setFormData({
       ...order,
+      status: statusCodeToNameMap[order.status] || order.status || 'Новый',
       manager_id: order.manager_id || null,
       discount_percent: order.discount_percent || 0,
       discount_amount: order.discount_amount || 0,
@@ -112,6 +125,16 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
       setServices(data?.filter((s: any) => s.is_active) || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+    }
+  };
+
+  const fetchStatuses = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/6123a2c4-f406-4686-ab76-a98c948f8bd8?type=statuses');
+      const data = await response.json();
+      setStatuses(data?.filter((s: any) => s.is_active) || []);
+    } catch (error) {
+      console.error('Error fetching statuses:', error);
     }
   };
 
@@ -181,8 +204,22 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
 
   const handleSave = () => {
     const totals = calculateTotals();
+    
+    // Маппинг русских названий статусов в коды для базы данных
+    const statusMap: Record<string, string> = {
+      'Новый': 'new',
+      'В работе': 'in_progress',
+      'Ожидание запчастей': 'waiting_parts',
+      'Готов': 'ready',
+      'Выдан': 'completed',
+      'Отменён': 'canceled'
+    };
+    
+    const statusCode = statusMap[formData.status] || formData.status || 'new';
+    
     onSave({
       ...formData,
+      status: statusCode,
       items: orderItems,
       total_amount: totals.total,
       discount_amount: totals.discount,
@@ -307,6 +344,19 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                   <div className="space-y-2">
                     <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Дополнительно</h3>
                     <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-xs">Статус *</Label>
+                        <Select value={formData.status || 'Новый'} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue placeholder="Выберите статус" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statuses.map((status) => (
+                              <SelectItem key={status.id} value={status.name}>{status.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div>
                         <Label className="text-xs">Менеджер</Label>
                         <Select value={formData.manager_id?.toString() || ''} onValueChange={(value) => setFormData({ ...formData, manager_id: parseInt(value) })}>
