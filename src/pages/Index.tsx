@@ -65,6 +65,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState<Order['status'] | 'all'>('all');
 
   const inventoryData: InventoryItem[] = [
     { id: '1', name: 'Ноутбук Dell XPS 13', sku: 'LAP-001', category: 'Электроника', quantity: 5, minQuantity: 10, price: 89990, supplier: 'TechSupply' },
@@ -461,7 +462,27 @@ const Index = () => {
             </div>
 
             <Card>
-              <CardContent className="pt-6">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Select value={orderStatusFilter} onValueChange={(value) => setOrderStatusFilter(value as Order['status'] | 'all')}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Все заказы" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все заказы</SelectItem>
+                      <SelectItem value="pending">Ожидает</SelectItem>
+                      <SelectItem value="processing">В работе</SelectItem>
+                      <SelectItem value="completed">Выполнен</SelectItem>
+                      <SelectItem value="cancelled">Отменён</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex-1" />
+                  <div className="text-sm text-muted-foreground">
+                    Показано: <span className="font-semibold">{ordersData.filter(order => orderStatusFilter === 'all' || order.status === orderStatusFilter).length}</span> из <span className="font-semibold">{ordersData.length}</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -475,7 +496,9 @@ const Index = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ordersData.map((order) => (
+                    {ordersData
+                      .filter(order => orderStatusFilter === 'all' || order.status === orderStatusFilter)
+                      .map((order) => (
                       <TableRow key={order.id} className="hover:bg-muted/50">
                         <TableCell className="font-mono font-semibold">{order.id}</TableCell>
                         <TableCell className="font-medium">{order.customerName}</TableCell>
