@@ -95,7 +95,7 @@ def handler(event: dict, context) -> dict:
         
         elif method == 'PUT':
             body = json.loads(event.get('body', '{}'))
-            item_id = body.pop('id', None)
+            item_id = params.get('id') or body.pop('id', None)
             
             if not item_id:
                 return {
@@ -113,6 +113,20 @@ def handler(event: dict, context) -> dict:
             )
             conn.commit()
             result = {'success': True}
+        
+        elif method == 'DELETE':
+            item_id = params.get('id')
+            
+            if not item_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'ID is required'})
+                }
+            
+            cursor.execute(f"DELETE FROM {full_table} WHERE id = %s", (item_id,))
+            conn.commit()
+            result = {'success': True, 'deleted_id': item_id}
         
         cursor.close()
         conn.close()
