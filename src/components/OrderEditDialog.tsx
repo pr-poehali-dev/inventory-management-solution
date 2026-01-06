@@ -395,7 +395,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                           </tr>
                         </thead>
                         <tbody>
-                          {orderItems.map((item) => (
+                          {Array.isArray(orderItems) && orderItems.map((item) => (
                             <tr key={item.id} className="border-b">
                               <td className="p-2 text-sm">{item.item_name}</td>
                               <td className="p-2">
