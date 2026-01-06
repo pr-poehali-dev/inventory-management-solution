@@ -33,6 +33,7 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import UserManagement from './UserManagement';
+import Shop from './Shop';
 
 type InventoryItem = {
   id: string;
@@ -43,6 +44,8 @@ type InventoryItem = {
   minQuantity: number;
   price: number;
   supplier: string;
+  image?: string;
+  description?: string;
 };
 
 type Order = {
@@ -74,13 +77,13 @@ const Index = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<Order['status'] | 'all'>('all');
   const [selectedItems, setSelectedItems] = useState<{id: string, quantity: number}[]>([]);
 
-  const inventoryData: InventoryItem[] = [
-    { id: '1', name: 'Ноутбук Dell XPS 13', sku: 'LAP-001', category: 'Электроника', quantity: 5, minQuantity: 10, price: 89990, supplier: 'TechSupply' },
-    { id: '2', name: 'Клавиатура Logitech MX', sku: 'KEY-002', category: 'Аксессуары', quantity: 45, minQuantity: 20, price: 8990, supplier: 'OfficeWorld' },
-    { id: '3', name: 'Монитор Samsung 27"', sku: 'MON-003', category: 'Электроника', quantity: 8, minQuantity: 15, price: 24990, supplier: 'TechSupply' },
-    { id: '4', name: 'Мышь Wireless', sku: 'MOU-004', category: 'Аксессуары', quantity: 3, minQuantity: 25, price: 1990, supplier: 'OfficeWorld' },
-    { id: '5', name: 'USB-C Кабель', sku: 'CAB-005', category: 'Кабели', quantity: 120, minQuantity: 50, price: 590, supplier: 'CablesPro' },
-  ];
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([
+    { id: '1', name: 'Ноутбук Dell XPS 13', sku: 'LAP-001', category: 'Электроника', quantity: 5, minQuantity: 10, price: 89990, supplier: 'TechSupply', image: 'https://cdn.poehali.dev/projects/ecc87eec-1e42-4990-bf43-a1fac36edbf4/files/35de587e-a370-4736-8105-ef0ca9e67059.jpg', description: 'Мощный и компактный ноутбук для работы и развлечений' },
+    { id: '2', name: 'Клавиатура Logitech MX', sku: 'KEY-002', category: 'Аксессуары', quantity: 45, minQuantity: 20, price: 8990, supplier: 'OfficeWorld', image: 'https://cdn.poehali.dev/projects/ecc87eec-1e42-4990-bf43-a1fac36edbf4/files/95939c2c-43de-467e-a4c0-9dcb099e65c9.jpg', description: 'Профессиональная беспроводная клавиатура' },
+    { id: '3', name: 'Монитор Samsung 27"', sku: 'MON-003', category: 'Электроника', quantity: 8, minQuantity: 15, price: 24990, supplier: 'TechSupply', image: 'https://cdn.poehali.dev/projects/ecc87eec-1e42-4990-bf43-a1fac36edbf4/files/3abd42e4-cdd6-498d-8116-693a50c16907.jpg', description: 'Современный монитор с высоким разрешением' },
+    { id: '4', name: 'Мышь Wireless', sku: 'MOU-004', category: 'Аксессуары', quantity: 3, minQuantity: 25, price: 1990, supplier: 'OfficeWorld', image: 'https://cdn.poehali.dev/projects/ecc87eec-1e42-4990-bf43-a1fac36edbf4/files/d1aa084c-fe67-4c77-a6ac-a0123979b925.jpg', description: 'Эргономичная беспроводная мышь' },
+    { id: '5', name: 'USB-C Кабель', sku: 'CAB-005', category: 'Кабели', quantity: 120, minQuantity: 50, price: 590, supplier: 'CablesPro', image: 'https://cdn.poehali.dev/projects/ecc87eec-1e42-4990-bf43-a1fac36edbf4/files/324a8c8c-648c-44d0-bcfa-990f368c8b88.jpg', description: 'Надёжный кабель USB-C для зарядки' },
+  ]);
 
   const [ordersData, setOrdersData] = useState<Order[]>([
     { id: 'ORD-1001', customerName: 'ООО "Технологии"', items: 3, total: 125970, status: 'processing', date: '2024-01-06', itemsList: [{id: '1', quantity: 1}, {id: '3', quantity: 2}] },
@@ -148,6 +151,17 @@ const Index = () => {
       itemsList: [...selectedItems],
     };
     setOrdersData(prev => [newOrder, ...prev]);
+    
+    setInventoryData(prev => 
+      prev.map(item => {
+        const orderItem = selectedItems.find(si => si.id === item.id);
+        if (orderItem) {
+          return { ...item, quantity: item.quantity - orderItem.quantity };
+        }
+        return item;
+      })
+    );
+    
     toast.success('Заказ успешно создан');
     setIsCreateOrderDialogOpen(false);
     setSelectedItems([]);
@@ -207,6 +221,25 @@ const Index = () => {
       total,
       itemsList: [...selectedItems],
     };
+
+    setInventoryData(prev => {
+      let newInventory = [...prev];
+      editingOrder.itemsList?.forEach(oldItem => {
+        newInventory = newInventory.map(item => 
+          item.id === oldItem.id 
+            ? { ...item, quantity: item.quantity + oldItem.quantity }
+            : item
+        );
+      });
+      selectedItems.forEach(newItem => {
+        newInventory = newInventory.map(item => 
+          item.id === newItem.id 
+            ? { ...item, quantity: item.quantity - newItem.quantity }
+            : item
+        );
+      });
+      return newInventory;
+    });
 
     setOrdersData(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
     toast.success('Заказ успешно обновлён');
@@ -581,7 +614,37 @@ const Index = () => {
 
   const { currentUser, logout, isAdmin } = useAuth();
 
+  const handleShopPurchase = (items: { id: string; quantity: number }[]) => {
+    const total = items.reduce((sum, item) => {
+      const product = inventoryData.find(p => p.id === item.id);
+      return sum + (product ? product.price * item.quantity : 0);
+    }, 0);
+
+    const newOrder: Order = {
+      id: `ORD-${1005 + ordersData.length}`,
+      customerName: 'Интернет-заказ',
+      items: items.reduce((sum, item) => sum + item.quantity, 0),
+      total,
+      status: 'pending',
+      date: new Date().toISOString().split('T')[0],
+      itemsList: items,
+    };
+
+    setOrdersData(prev => [newOrder, ...prev]);
+    
+    setInventoryData(prev => 
+      prev.map(item => {
+        const orderItem = items.find(i => i.id === item.id);
+        if (orderItem) {
+          return { ...item, quantity: item.quantity - orderItem.quantity };
+        }
+        return item;
+      })
+    );
+  };
+
   const menuItems = [
+    { id: 'shop', icon: 'ShoppingBag', label: 'Магазин', adminOnly: false },
     { id: 'dashboard', icon: 'LayoutDashboard', label: 'Дашборд', adminOnly: false },
     { id: 'inventory', icon: 'Package', label: 'Инвентарь', adminOnly: false },
     { id: 'orders', icon: 'ShoppingCart', label: 'Заказы', adminOnly: false },
@@ -648,6 +711,17 @@ const Index = () => {
       </aside>
 
       <main className="flex-1 p-8 overflow-auto">
+        {activeTab === 'shop' && (
+          <Shop 
+            inventory={inventoryData.map(item => ({
+              ...item,
+              image: item.image || '',
+              description: item.description || 'Описание товара'
+            }))}
+            onPurchase={handleShopPurchase}
+          />
+        )}
+
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">
