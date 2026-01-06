@@ -10,7 +10,7 @@ import SettingsPage from './SettingsPage';
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -46,7 +46,7 @@ const Index = () => {
     }
   };
 
-  if (!user) return null;
+  if (!currentUser) return null;
 
   return (
     <div className="flex h-screen bg-slate-50">

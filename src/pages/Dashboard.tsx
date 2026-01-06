@@ -3,7 +3,7 @@ import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
 
   const stats = [
     { title: 'Новые заказы', value: '24', icon: 'ClipboardList', color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -17,7 +17,7 @@ export default function Dashboard() {
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold text-slate-800">
-          Добро пожаловать, {user?.username || 'Пользователь'}!
+          Добро пожаловать, {currentUser?.username || 'Пользователь'}!
         </h1>
         <p className="text-slate-600 mt-1">
           Сегодня {new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
