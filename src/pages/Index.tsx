@@ -66,6 +66,8 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCreateOrderDialogOpen, setIsCreateOrderDialogOpen] = useState(false);
+  const [isEditOrderDialogOpen, setIsEditOrderDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [orderStatusFilter, setOrderStatusFilter] = useState<Order['status'] | 'all'>('all');
   const [selectedItems, setSelectedItems] = useState<{id: string, quantity: number}[]>([]);
 
@@ -170,6 +172,42 @@ const Index = () => {
         prev.map(i => i.id === itemId ? {...i, quantity} : i)
       );
     }
+  };
+
+  const handleEditOrder = (order: Order) => {
+    setEditingOrder(order);
+    setSelectedItems([]);
+    setIsEditOrderDialogOpen(true);
+  };
+
+  const handleUpdateOrder = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+    
+    const formData = new FormData(e.currentTarget);
+    
+    if (selectedItems.length === 0) {
+      toast.error('Добавьте хотя бы один товар');
+      return;
+    }
+
+    const total = selectedItems.reduce((sum, item) => {
+      const product = inventoryData.find(p => p.id === item.id);
+      return sum + (product ? product.price * item.quantity : 0);
+    }, 0);
+
+    const updatedOrder: Order = {
+      ...editingOrder,
+      customerName: formData.get('customerName') as string,
+      items: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
+      total,
+    };
+
+    setOrdersData(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
+    toast.success('Заказ успешно обновлён');
+    setIsEditOrderDialogOpen(false);
+    setEditingOrder(null);
+    setSelectedItems([]);
   };
 
   return (
@@ -622,6 +660,125 @@ const Index = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+
+              <Dialog open={isEditOrderDialogOpen} onOpenChange={(open) => {
+                setIsEditOrderDialogOpen(open);
+                if (!open) {
+                  setEditingOrder(null);
+                  setSelectedItems([]);
+                }
+              }}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Редактирование заказа {editingOrder?.id}</DialogTitle>
+                    <DialogDescription>Измените данные заказа</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleUpdateOrder} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editCustomerName">Название клиента</Label>
+                      <Input 
+                        id="editCustomerName" 
+                        name="customerName" 
+                        placeholder="ООО 'Компания'" 
+                        defaultValue={editingOrder?.customerName}
+                        required 
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Товары в заказе</Label>
+                      {selectedItems.length === 0 ? (
+                        <div className="text-sm text-muted-foreground p-4 border border-dashed rounded-lg text-center">
+                          Товары не добавлены. Выберите из списка ниже.
+                        </div>
+                      ) : (
+                        <div className="space-y-2 border rounded-lg p-3">
+                          {selectedItems.map(item => {
+                            const product = inventoryData.find(p => p.id === item.id);
+                            if (!product) return null;
+                            return (
+                              <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{product.name}</p>
+                                  <p className="text-xs text-muted-foreground">{product.price.toLocaleString('ru-RU')} ₽</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
+                                  >
+                                    <Icon name="Minus" size={14} />
+                                  </Button>
+                                  <span className="font-mono font-semibold w-8 text-center">{item.quantity}</span>
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
+                                  >
+                                    <Icon name="Plus" size={14} />
+                                  </Button>
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleRemoveItemFromOrder(item.id)}
+                                  >
+                                    <Icon name="Trash2" size={14} />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="pt-2 border-t mt-2 flex justify-between items-center">
+                            <span className="font-medium">Итого:</span>
+                            <span className="font-mono font-bold text-lg">
+                              {selectedItems.reduce((sum, item) => {
+                                const product = inventoryData.find(p => p.id === item.id);
+                                return sum + (product ? product.price * item.quantity : 0);
+                              }, 0).toLocaleString('ru-RU')} ₽
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Доступные товары</Label>
+                      <div className="border rounded-lg max-h-64 overflow-y-auto">
+                        {inventoryData.map(item => (
+                          <div 
+                            key={item.id} 
+                            className="flex items-center justify-between p-3 hover:bg-muted/50 border-b last:border-b-0"
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.price.toLocaleString('ru-RU')} ₽ • В наличии: {item.quantity}
+                              </p>
+                            </div>
+                            <Button 
+                              type="button"
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleAddItemToOrder(item.id)}
+                              disabled={selectedItems.some(i => i.id === item.id)}
+                            >
+                              {selectedItems.some(i => i.id === item.id) ? 'Добавлен' : 'Добавить'}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button type="submit" className="w-full" disabled={selectedItems.length === 0}>
+                      Сохранить изменения
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <Card>
@@ -682,8 +839,12 @@ const Index = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground">{order.date}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Icon name="Eye" size={18} />
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditOrder(order)}
+                          >
+                            <Icon name="Pencil" size={18} />
                           </Button>
                         </TableCell>
                       </TableRow>
