@@ -12,7 +12,6 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 import OrderForm from '@/components/OrderForm';
 import OrderEditDialog from '@/components/OrderEditDialog';
-import { getOrders, getOrderById, deleteOrder, getStatuses } from '@/lib/db';
 
 type Order = {
   id: number;

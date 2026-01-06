@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
-import { getDirectoryItems, createDirectoryItem, updateDirectoryItem, deleteDirectoryItem } from '@/lib/db';
 
 type DirectoryType = 'contractors' | 'products' | 'services' | 'devices' | 'accessories' | 'malfunctions' | 'units' | 'money';
 
@@ -118,7 +117,8 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
       };
       const type = typeMap[activeDirectory];
       if (type) {
-        const data = await getDirectoryItems(type);
+        const response = await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`);
+        const data = await response.json();
         setItems(data || []);
       }
     } catch (error) {
@@ -145,19 +145,19 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
       const dataToSend = editingItem ? formData : { ...formData, is_active: true };
       
       if (editingItem) {
-        const success = await updateDirectoryItem(type, editingItem.id, dataToSend);
-        if (success) {
-          toast.success('Запись обновлена');
-        } else {
-          toast.error('Ошибка обновления');
-        }
+        await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}&id=${editingItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataToSend),
+        });
+        toast.success('Запись обновлена');
       } else {
-        const newId = await createDirectoryItem(type, dataToSend);
-        if (newId) {
-          toast.success('Запись добавлена');
-        } else {
-          toast.error('Ошибка добавления');
-        }
+        await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataToSend),
+        });
+        toast.success('Запись добавлена');
       }
       setIsDialogOpen(false);
       setEditingItem(null);
@@ -183,13 +183,11 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
         };
         const type = typeMap[activeDirectory];
         
-        const success = await deleteDirectoryItem(type, id);
-        if (success) {
-          toast.success('Запись удалена');
-          loadData();
-        } else {
-          toast.error('Ошибка удаления');
-        }
+        await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}&id=${id}`, {
+          method: 'DELETE',
+        });
+        toast.success('Запись удалена');
+        loadData();
       } catch (error) {
         console.error('Error deleting:', error);
         toast.error('Ошибка удаления');
