@@ -74,12 +74,12 @@ const Index = () => {
     { id: '5', name: 'USB-C Кабель', sku: 'CAB-005', category: 'Кабели', quantity: 120, minQuantity: 50, price: 590, supplier: 'CablesPro' },
   ];
 
-  const ordersData: Order[] = [
+  const [ordersData, setOrdersData] = useState<Order[]>([
     { id: 'ORD-1001', customerName: 'ООО "Технологии"', items: 3, total: 125970, status: 'processing', date: '2024-01-06' },
     { id: 'ORD-1002', customerName: 'ИП Иванов', items: 5, total: 45950, status: 'completed', date: '2024-01-05' },
     { id: 'ORD-1003', customerName: 'ООО "Офис+"', items: 12, total: 298680, status: 'pending', date: '2024-01-06' },
     { id: 'ORD-1004', customerName: 'ООО "Старт"', items: 2, total: 51980, status: 'processing', date: '2024-01-04' },
-  ];
+  ]);
 
   const suppliersData: Supplier[] = [
     { id: 'SUP-001', name: 'TechSupply', contact: '+7 495 123-45-67', email: 'sales@techsupply.ru', products: 156, rating: 4.8 },
@@ -105,6 +105,15 @@ const Index = () => {
   const handleAddProduct = () => {
     toast.success('Товар добавлен в инвентарь');
     setIsAddDialogOpen(false);
+  };
+
+  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
+    setOrdersData(prev => 
+      prev.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
+    toast.success('Статус заказа обновлён');
   };
 
   return (
@@ -472,7 +481,19 @@ const Index = () => {
                         <TableCell className="font-medium">{order.customerName}</TableCell>
                         <TableCell>{order.items}</TableCell>
                         <TableCell className="font-mono font-semibold">{order.total.toLocaleString('ru-RU')} ₽</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>
+                          <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value as Order['status'])}>
+                            <SelectTrigger className="w-36">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Ожидает</SelectItem>
+                              <SelectItem value="processing">В работе</SelectItem>
+                              <SelectItem value="completed">Выполнен</SelectItem>
+                              <SelectItem value="cancelled">Отменён</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">{order.date}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm">
