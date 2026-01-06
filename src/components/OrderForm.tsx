@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,32 +15,65 @@ type OrderFormProps = {
 
 export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
   const [formData, setFormData] = useState({
-    contractor_name: order?.contractor_name || '',
-    phone: order?.phone || '',
-    address: order?.address || '',
-    advertising_source: order?.advertising_source || '',
-    serial_number: order?.serial_number || '',
-    device_type: order?.device_type || '',
-    brand: order?.brand || '',
-    model: order?.model || '',
-    color: order?.color || '',
-    accessories: order?.accessories || [],
-    appearance: order?.appearance || '',
-    malfunction: order?.malfunction || '',
-    security_code: order?.security_code || '',
-    device_turns_on: order?.device_turns_on || false,
-    failure_reason: order?.failure_reason || '',
-    repair_description: order?.repair_description || '',
-    return_defective_parts: order?.return_defective_parts || false,
-    estimated_price: order?.estimated_price || '',
-    prepayment: order?.prepayment || '',
-    deadline_date: order?.deadline_date || '',
-    deadline_time: order?.deadline_time || '',
-    manager: order?.manager || '',
-    receiver_comment: order?.receiver_comment || '',
+    contractor_name: '',
+    phone: '',
+    address: '',
+    advertising_source: '',
+    serial_number: '',
+    device_type: '',
+    brand: '',
+    model: '',
+    color: '',
+    accessories: [],
+    appearance: '',
+    malfunction: '',
+    security_code: '',
+    device_turns_on: false,
+    failure_reason: '',
+    repair_description: '',
+    return_defective_parts: false,
+    estimated_price: '',
+    prepayment: '',
+    deadline_date: '',
+    deadline_time: '',
+    manager: '',
+    receiver_comment: '',
   });
 
   const [appearancePhotos, setAppearancePhotos] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (order) {
+      const deadlineDate = order.deadline ? order.deadline.split(' ')[0] : '';
+      const deadlineTime = order.deadline ? order.deadline.split(' ')[1] : '';
+      
+      setFormData({
+        contractor_name: order.contractor_name || '',
+        phone: order.phone || '',
+        address: order.address || '',
+        advertising_source: order.advertising_source || '',
+        serial_number: order.serial_number || '',
+        device_type: order.device_type_name || order.device_type || '',
+        brand: order.brand_name || order.brand || '',
+        model: order.model_name || order.model || '',
+        color: order.color || '',
+        accessories: order.accessories || [],
+        appearance: order.appearance || '',
+        malfunction: order.malfunction_description || order.malfunction || '',
+        security_code: order.security_code || '',
+        device_turns_on: order.device_turns_on || false,
+        failure_reason: order.failure_reason || '',
+        repair_description: order.repair_description || '',
+        return_defective_parts: order.return_defective_parts || false,
+        estimated_price: order.estimated_price || '',
+        prepayment: order.prepayment || '',
+        deadline_date: deadlineDate,
+        deadline_time: deadlineTime,
+        manager: order.manager || '',
+        receiver_comment: order.receiver_comment || '',
+      });
+    }
+  }, [order]);
 
   const handleChange = (field: string, value: any) => {
     setFormData({ ...formData, [field]: value });

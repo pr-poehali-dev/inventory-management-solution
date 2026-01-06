@@ -77,9 +77,16 @@ export default function OrdersPage() {
     setIsDialogOpen(true);
   };
 
-  const handleEditOrder = (order: Order) => {
-    setEditingOrder(order);
-    setIsDialogOpen(true);
+  const handleEditOrder = async (order: Order) => {
+    try {
+      const response = await fetch(`${API_URL}?id=${order.id}`);
+      const fullOrder = await response.json();
+      setEditingOrder(fullOrder);
+      setIsDialogOpen(true);
+    } catch (error) {
+      console.error('Error loading order:', error);
+      toast.error('Ошибка загрузки заказа');
+    }
   };
 
   const handleSaveOrder = async (formData: any) => {
