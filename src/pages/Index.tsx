@@ -33,7 +33,6 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import UserManagement from './UserManagement';
-import Shop from './Shop';
 
 type InventoryItem = {
   id: string;
@@ -644,7 +643,6 @@ const Index = () => {
   };
 
   const menuItems = [
-    { id: 'shop', icon: 'ShoppingBag', label: 'Магазин', adminOnly: false },
     { id: 'dashboard', icon: 'LayoutDashboard', label: 'Дашборд', adminOnly: false },
     { id: 'inventory', icon: 'Package', label: 'Инвентарь', adminOnly: false },
     { id: 'orders', icon: 'ShoppingCart', label: 'Заказы', adminOnly: false },
@@ -670,6 +668,15 @@ const Index = () => {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
+          <a
+            href="/shop"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all bg-primary/10 text-primary hover:bg-primary/20 mb-4"
+          >
+            <Icon name="ExternalLink" size={20} />
+            <span className="font-medium">Интернет-магазин</span>
+          </a>
           {menuItems
             .filter(item => !item.adminOnly || isAdmin)
             .map((item) => (
@@ -711,17 +718,6 @@ const Index = () => {
       </aside>
 
       <main className="flex-1 p-8 overflow-auto">
-        {activeTab === 'shop' && (
-          <Shop 
-            inventory={inventoryData.map(item => ({
-              ...item,
-              image: item.image || '',
-              description: item.description || 'Описание товара'
-            }))}
-            onPurchase={handleShopPurchase}
-          />
-        )}
-
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">

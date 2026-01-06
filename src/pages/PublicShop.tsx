@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 
+const API_URL = 'https://functions.poehali.dev/ab255459-3f5e-417e-bc1c-6cfd39b319b0';
+
 type Product = {
   id: string;
   name: string;
@@ -38,21 +40,44 @@ type CartItem = {
   quantity: number;
 };
 
-interface ShopProps {
-  inventory: Product[];
-  onPurchase: (items: { id: string; quantity: number }[]) => void;
-}
-
-const Shop = ({ inventory, onPurchase }: ShopProps) => {
+const PublicShop = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const availableProducts = inventory.filter((item) => item.quantity > 0);
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+  }, []);
 
-  const filteredProducts = availableProducts.filter((product) => {
+  const loadProducts = async () => {
+    try {
+      const response = await fetch(`${API_URL}?action=products`);
+      const data = await response.json();
+      setProducts(data.products || []);
+    } catch (error) {
+      toast.error('Ошибка загрузки товаров');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch(`${API_URL}?action=categories`);
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error('Ошибка загрузки категорий', error);
+    }
+  };
+
+  const filteredProducts = products.filter((product) => {
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     const matchesSearch =
       searchQuery === '' ||
@@ -60,8 +85,6 @@ const Shop = ({ inventory, onPurchase }: ShopProps) => {
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  const categories = ['all', ...Array.from(new Set(inventory.map((item) => item.category)))];
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find((item) => item.product.id === product.id);
@@ -90,7 +113,7 @@ const Shop = ({ inventory, onPurchase }: ShopProps) => {
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
-    const product = inventory.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (!product) return;
 
     if (quantity <= 0) {
@@ -118,7 +141,7 @@ const Shop = ({ inventory, onPurchase }: ShopProps) => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const handleCheckout = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const customerName = formData.get('customerName') as string;
@@ -135,38 +158,77 @@ const Shop = ({ inventory, onPurchase }: ShopProps) => {
       quantity: item.quantity,
     }));
 
-    onPurchase(orderItems);
-    toast.success('Заказ успешно оформлен!');
-    setCart([]);
-    setIsCheckoutOpen(false);
-    setIsCartOpen(false);
+    try {
+      const response = await fetch(`${API_URL}?action=order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName,
+          email,
+          phone,
+          items: orderItems,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(`Заказ ${data.orderId} успешно оформлен!`);
+        setCart([]);
+        setIsCheckoutOpen(false);
+        setIsCartOpen(false);
+        loadProducts();
+      } else {
+        toast.error(data.error || 'Ошибка оформления заказа');
+      }
+    } catch (error) {
+      toast.error('Ошибка связи с сервером');
+    }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Интернет-магазин</h2>
-          <p className="text-muted-foreground mt-1">Товары в наличии • Актуальные остатки со склада</p>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-card border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <Icon name="ShoppingBag" className="text-primary-foreground" size={24} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Интернет-магазин</h1>
+                <p className="text-xs text-muted-foreground">LiveSklad Store</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="relative gap-2"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <Icon name="ShoppingCart" size={20} />
+              Корзина
+              {cart.length > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 flex items-center justify-center">
+                  {getTotalItems()}
+                </Badge>
+              )}
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="outline"
-          className="relative gap-2"
-          onClick={() => setIsCartOpen(true)}
-        >
-          <Icon name="ShoppingCart" size={20} />
-          Корзина
-          {cart.length > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 flex items-center justify-center">
-              {getTotalItems()}
-            </Badge>
-          )}
-        </Button>
-      </div>
+      </header>
 
-      <div className="space-y-6">
+      <main className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Каталог товаров</h2>
+            <p className="text-muted-foreground">
+              Товары в наличии • Актуальные остатки со склада
+            </p>
+          </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Icon
                 name="Search"
@@ -186,86 +248,96 @@ const Shop = ({ inventory, onPurchase }: ShopProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все категории</SelectItem>
-                {categories
-                  .filter((cat) => cat !== 'all')
-                  .map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-        {filteredProducts.length === 0 ? (
-          <Card className="py-16">
-            <CardContent className="text-center">
-              <Icon
-                name="PackageOpen"
-                size={64}
-                className="mx-auto text-muted-foreground mb-4"
-              />
-              <h3 className="text-xl font-semibold mb-2">Товары не найдены</h3>
-              <p className="text-muted-foreground">
-                Попробуйте изменить параметры поиска
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="text-sm text-muted-foreground mb-4">
-              Найдено товаров: <span className="font-semibold">{filteredProducts.length}</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="overflow-hidden hover-scale group"
-                >
-                  <div className="aspect-square bg-muted relative overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <Badge className="absolute top-3 right-3">
-                      {product.quantity} шт
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <Badge variant="outline" className="text-xs">
-                        {product.category}
+          {loading ? (
+            <Card className="py-16">
+              <CardContent className="text-center">
+                <Icon
+                  name="Loader2"
+                  size={64}
+                  className="mx-auto text-muted-foreground mb-4 animate-spin"
+                />
+                <p className="text-muted-foreground">Загрузка товаров...</p>
+              </CardContent>
+            </Card>
+          ) : filteredProducts.length === 0 ? (
+            <Card className="py-16">
+              <CardContent className="text-center">
+                <Icon
+                  name="PackageOpen"
+                  size={64}
+                  className="mx-auto text-muted-foreground mb-4"
+                />
+                <h3 className="text-xl font-semibold mb-2">Товары не найдены</h3>
+                <p className="text-muted-foreground">
+                  Попробуйте изменить параметры поиска
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="text-sm text-muted-foreground mb-4">
+                Найдено товаров: <span className="font-semibold">{filteredProducts.length}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProducts.map((product) => (
+                  <Card
+                    key={product.id}
+                    className="overflow-hidden hover-scale group"
+                  >
+                    <div className="aspect-square bg-muted relative overflow-hidden">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <Badge className="absolute top-3 right-3">
+                        {product.quantity} шт
                       </Badge>
-                      <h3 className="font-semibold text-lg line-clamp-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {product.description}
-                      </p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold">
-                          {product.price.toLocaleString('ru-RU')} ₽
-                        </span>
-                      </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="p-4 pt-0">
-                    <Button
-                      className="w-full gap-2"
-                      onClick={() => addToCart(product)}
-                      disabled={product.quantity === 0}
-                    >
-                      <Icon name="ShoppingCart" size={18} />
-                      В корзину
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="text-xs">
+                          {product.category}
+                        </Badge>
+                        <h3 className="font-semibold text-lg line-clamp-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {product.description}
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold">
+                            {product.price.toLocaleString('ru-RU')} ₽
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-0">
+                      <Button
+                        className="w-full gap-2"
+                        onClick={() => addToCart(product)}
+                        disabled={product.quantity === 0}
+                      >
+                        <Icon name="ShoppingCart" size={18} />
+                        В корзину
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </main>
 
       <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -446,8 +518,14 @@ const Shop = ({ inventory, onPurchase }: ShopProps) => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <footer className="mt-12 border-t bg-muted/30">
+        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+          <p>© 2024 LiveSklad Store • Интернет-магазин работает через API со складом</p>
+        </div>
+      </footer>
     </div>
   );
 };
 
-export default Shop;
+export default PublicShop;
