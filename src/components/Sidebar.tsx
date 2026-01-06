@@ -76,9 +76,16 @@ const menuCategories: MenuCategory[] = [
   { id: 'shop', icon: 'ShoppingBag', label: 'Интернет-магазин' },
 ];
 
-const bottomMenuItems = [
+const bottomMenuItems: MenuCategory[] = [
   { id: 'notifications', icon: 'Bell', label: 'Уведомления' },
-  { id: 'settings', icon: 'Settings', label: 'Настройки' },
+  { 
+    id: 'settings', 
+    icon: 'Settings', 
+    label: 'Настройки',
+    subcategories: [
+      { id: 'settings-users', label: 'Пользователи' },
+    ],
+  },
   { id: 'knowledge', icon: 'HelpCircle', label: 'База знаний' },
   { id: 'account', icon: 'User', label: 'Данные аккаунта' },
 ];

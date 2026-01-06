@@ -6,6 +6,7 @@ import Dashboard from './Dashboard';
 import OrdersPage from './OrdersPage';
 import DirectoriesPage from './DirectoriesPage';
 import SettingsPage from './SettingsPage';
+import UsersPage from './UsersPage';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -29,6 +30,8 @@ const Index = () => {
         return <DirectoriesPage activeDirectory={activeTab} />;
       case 'settings':
         return <SettingsPage />;
+      case 'settings-users':
+        return <UsersPage />;
       case 'shop':
         window.open('/shop', '_blank');
         return null;

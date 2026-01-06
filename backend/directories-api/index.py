@@ -9,6 +9,8 @@ SCHEMA = 't_p72562668_inventory_management'
 TABLES_MAP = {
     'contractors': 'contractors',
     'products': 'products',
+    'services': 'services',
+    'users': 'users',
     'devices': 'device_types',
     'brands': 'device_brands',
     'models': 'device_models',

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 import OrderForm from '@/components/OrderForm';
+import OrderEditDialog from '@/components/OrderEditDialog';
 
 type Order = {
   id: number;
@@ -34,6 +35,8 @@ export default function OrdersPage() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState<any>(null);
 
   const statusColors: Record<string, string> = {
     new: 'bg-blue-100 text-blue-700',
@@ -81,8 +84,8 @@ export default function OrdersPage() {
     try {
       const response = await fetch(`${API_URL}?id=${order.id}`);
       const fullOrder = await response.json();
-      setEditingOrder(fullOrder);
-      setIsDialogOpen(true);
+      setOrderToEdit(fullOrder);
+      setShowEditDialog(true);
     } catch (error) {
       console.error('Error loading order:', error);
       toast.error('Ошибка загрузки заказа');
@@ -248,6 +251,14 @@ export default function OrdersPage() {
           <OrderForm order={editingOrder} onSave={handleSaveOrder} onCancel={() => setIsDialogOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      {/* Edit Order Dialog */}
+      <OrderEditDialog
+        order={orderToEdit}
+        open={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSave={handleSaveOrder}
+      />
 
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>

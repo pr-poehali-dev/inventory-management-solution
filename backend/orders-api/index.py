@@ -17,6 +17,7 @@ def get_db_connection():
 def handler(event: dict, context) -> dict:
     """Обработчик запросов к API заказов"""
     method = event.get('httpMethod', 'GET')
+    path = event.get('path', '')
     
     if method == 'OPTIONS':
         return {
@@ -31,6 +32,11 @@ def handler(event: dict, context) -> dict:
     
     try:
         conn, cursor = get_db_connection()
+        
+        if '/items' in path:
+            return handle_order_items(event, conn, cursor)
+        elif '/history' in path:
+            return handle_order_history(event, conn, cursor)
         
         if method == 'GET':
             order_id = event.get('queryStringParameters', {}).get('id')
@@ -411,4 +417,113 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({'error': str(e)})
+        }
+
+def handle_order_items(event: dict, conn, cursor) -> dict:
+    """Обработка работ и материалов заказа"""
+    method = event.get('httpMethod', 'GET')
+    path = event.get('path', '')
+    order_id = path.split('/')[-2] if '/items' in path else None
+    
+    if not order_id:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Order ID required'})
+        }
+    
+    if method == 'GET':
+        cursor.execute(f"""
+            SELECT * FROM {SCHEMA}.order_items
+            WHERE order_id = %s
+            ORDER BY created_at
+        """, (order_id,))
+        items = cursor.fetchall()
+        result = [dict(item) for item in items]
+    
+    elif method == 'POST':
+        body = json.loads(event.get('body', '{}'))
+        items = body.get('items', [])
+        
+        cursor.execute(f"DELETE FROM {SCHEMA}.order_items WHERE order_id = %s", (order_id,))
+        
+        for item in items:
+            cursor.execute(f"""
+                INSERT INTO {SCHEMA}.order_items (
+                    order_id, item_type, item_id, item_name, quantity, price, warranty_months, total
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                order_id,
+                item.get('item_type'),
+                item.get('item_id'),
+                item.get('item_name'),
+                item.get('quantity', 1),
+                item.get('price', 0),
+                item.get('warranty_months', 0),
+                item.get('total', 0)
+            ))
+        
+        conn.commit()
+        result = {'success': True}
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps(result, default=str)
+    }
+
+def handle_order_history(event: dict, conn, cursor) -> dict:
+    """Обработка истории изменений заказа"""
+    method = event.get('httpMethod', 'GET')
+    path = event.get('path', '')
+    order_id = path.split('/')[-2] if '/history' in path else None
+    
+    if not order_id:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Order ID required'})
+        }
+    
+    if method == 'GET':
+        cursor.execute(f"""
+            SELECT h.*, u.full_name as user_name
+            FROM {SCHEMA}.order_history h
+            LEFT JOIN {SCHEMA}.users u ON h.user_id = u.id
+            WHERE h.order_id = %s
+            ORDER BY h.created_at DESC
+        """, (order_id,))
+        history = cursor.fetchall()
+        result = [dict(item) for item in history]
+    
+    elif method == 'POST':
+        body = json.loads(event.get('body', '{}'))
+        
+        cursor.execute(f"""
+            INSERT INTO {SCHEMA}.order_history (
+                order_id, user_id, action_type, description, attachments
+            ) VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            order_id,
+            body.get('user_id'),
+            body.get('action_type', 'comment'),
+            body.get('description', ''),
+            json.dumps(body.get('attachments', []))
+        ))
+        
+        conn.commit()
+        result = {'success': True, 'id': cursor.fetchone()['id']}
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps(result, default=str)
+    }
         }
