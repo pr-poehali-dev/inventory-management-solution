@@ -68,15 +68,21 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
     });
 
     try {
-      const itemsRes = await fetch(`${ORDERS_API}/${order.id}/items`);
-      const itemsData = await itemsRes.json();
-      setOrderItems(itemsData || []);
+      const itemsRes = await fetch(`${ORDERS_API}?orderId=${order.id}&action=items`);
+      if (itemsRes.ok) {
+        const itemsData = await itemsRes.json();
+        setOrderItems(Array.isArray(itemsData) ? itemsData : []);
+      }
 
-      const historyRes = await fetch(`${ORDERS_API}/${order.id}/history`);
-      const historyData = await historyRes.json();
-      setHistory(historyData || []);
+      const historyRes = await fetch(`${ORDERS_API}?orderId=${order.id}&action=history`);
+      if (historyRes.ok) {
+        const historyData = await historyRes.json();
+        setHistory(Array.isArray(historyData) ? historyData : []);
+      }
     } catch (error) {
       console.error('Error loading order data:', error);
+      setOrderItems([]);
+      setHistory([]);
     }
   };
 
@@ -159,7 +165,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
     if (!historyComment.trim() || !order) return;
     
     try {
-      await fetch(`${ORDERS_API}/${order.id}/history`, {
+      await fetch(`${ORDERS_API}?orderId=${order.id}&action=history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -279,222 +285,109 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                 </div>
 
                 {activeInfoTab === 'general' && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 max-w-6xl">
                     {/* КЛИЕНТ */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-700 uppercase">Клиент</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Клиент</h3>
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <Label>Контрагент (ФИО) *</Label>
-                          <Input
-                            value={formData.contractor_name || ''}
-                            onChange={(e) => setFormData({ ...formData, contractor_name: e.target.value })}
-                            required
-                          />
+                          <Label className="text-xs">Контрагент *</Label>
+                          <Input className="h-8 text-sm" value={formData.contractor_name || ''} onChange={(e) => setFormData({ ...formData, contractor_name: e.target.value })} required />
                         </div>
                         <div>
-                          <Label>Телефон *</Label>
-                          <Input
-                            value={formData.phone || ''}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label>Адрес</Label>
-                          <Input
-                            value={formData.address || ''}
-                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                          />
+                          <Label className="text-xs">Телефон *</Label>
+                          <Input className="h-8 text-sm" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
                         </div>
                         <div>
-                          <Label>Рекламный источник</Label>
-                          <Input
-                            value={formData.advertising_source || ''}
-                            onChange={(e) => setFormData({ ...formData, advertising_source: e.target.value })}
-                          />
+                          <Label className="text-xs">Адрес</Label>
+                          <Input className="h-8 text-sm" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                         </div>
                       </div>
                     </div>
 
                     {/* УСТРОЙСТВО */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-700 uppercase">Устройство и неисправности</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Устройство</h3>
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <Label>Серийный номер / IMEI</Label>
-                          <Input
-                            value={formData.serial_number || ''}
-                            onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                          />
+                          <Label className="text-xs">Серийный номер</Label>
+                          <Input className="h-8 text-sm" value={formData.serial_number || ''} onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })} />
                         </div>
                         <div>
-                          <Label>Тип устройства *</Label>
-                          <Input
-                            value={formData.device_type || ''}
-                            onChange={(e) => setFormData({ ...formData, device_type: e.target.value })}
-                            required
-                          />
+                          <Label className="text-xs">Цвет</Label>
+                          <Input className="h-8 text-sm" value={formData.color || ''} onChange={(e) => setFormData({ ...formData, color: e.target.value })} />
                         </div>
                         <div>
-                          <Label>Марка *</Label>
-                          <Input
-                            value={formData.brand || ''}
-                            onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                            required
-                          />
+                          <Label className="text-xs">Комплектация</Label>
+                          <Input className="h-8 text-sm" value={formData.accessories || ''} onChange={(e) => setFormData({ ...formData, accessories: e.target.value })} />
+                        </div>
+                        <div className="col-span-3">
+                          <Label className="text-xs">Внешний вид</Label>
+                          <Textarea className="text-sm" value={formData.appearance || ''} onChange={(e) => setFormData({ ...formData, appearance: e.target.value })} rows={2} />
+                        </div>
+                        <div className="col-span-3">
+                          <Label className="text-xs">Неисправность *</Label>
+                          <Textarea className="text-sm" value={formData.malfunction || ''} onChange={(e) => setFormData({ ...formData, malfunction: e.target.value })} rows={2} required />
                         </div>
                         <div>
-                          <Label>Модель *</Label>
-                          <Input
-                            value={formData.model || ''}
-                            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                            required
-                          />
+                          <Label className="text-xs">Защитный код</Label>
+                          <Input className="h-8 text-sm" type="password" value={formData.security_code || ''} onChange={(e) => setFormData({ ...formData, security_code: e.target.value })} />
                         </div>
                         <div>
-                          <Label>Цвет</Label>
-                          <Input
-                            value={formData.color || ''}
-                            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                          />
+                          <Label className="text-xs">Причина поломки</Label>
+                          <Input className="h-8 text-sm" value={formData.failure_reason || ''} onChange={(e) => setFormData({ ...formData, failure_reason: e.target.value })} />
                         </div>
-                        <div>
-                          <Label>Комплектация</Label>
-                          <Input
-                            value={formData.accessories || ''}
-                            onChange={(e) => setFormData({ ...formData, accessories: e.target.value })}
-                            placeholder="Зарядное, наушники..."
-                          />
+                        <div className="flex items-center space-x-3 pt-5">
+                          <input type="checkbox" checked={formData.device_turns_on || false} onChange={(e) => setFormData({ ...formData, device_turns_on: e.target.checked })} className="h-4 w-4" />
+                          <span className="text-xs">Включается</span>
                         </div>
                         <div className="col-span-2">
-                          <Label>Внешний вид</Label>
-                          <Textarea
-                            value={formData.appearance || ''}
-                            onChange={(e) => setFormData({ ...formData, appearance: e.target.value })}
-                            rows={2}
-                          />
+                          <Label className="text-xs">Что ремонтируем?</Label>
+                          <Textarea className="text-sm" value={formData.repair_description || ''} onChange={(e) => setFormData({ ...formData, repair_description: e.target.value })} rows={2} />
                         </div>
-                        <div className="col-span-2">
-                          <Label>Неисправность *</Label>
-                          <Textarea
-                            value={formData.malfunction || ''}
-                            onChange={(e) => setFormData({ ...formData, malfunction: e.target.value })}
-                            rows={2}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>Защитный код</Label>
-                          <Input
-                            type="password"
-                            value={formData.security_code || ''}
-                            onChange={(e) => setFormData({ ...formData, security_code: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Устройство включается</Label>
-                          <div className="flex items-center space-x-2 pt-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.device_turns_on || false}
-                              onChange={(e) => setFormData({ ...formData, device_turns_on: e.target.checked })}
-                              className="h-4 w-4"
-                            />
-                            <span className="text-sm">Да</span>
-                          </div>
-                        </div>
-                        <div className="col-span-2">
-                          <Label>Причина поломки</Label>
-                          <Input
-                            value={formData.failure_reason || ''}
-                            onChange={(e) => setFormData({ ...formData, failure_reason: e.target.value })}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label>Что ремонтируем?</Label>
-                          <Textarea
-                            value={formData.repair_description || ''}
-                            onChange={(e) => setFormData({ ...formData, repair_description: e.target.value })}
-                            rows={2}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label>Возврат неисправных деталей</Label>
-                          <div className="flex items-center space-x-2 pt-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.return_defective_parts || false}
-                              onChange={(e) => setFormData({ ...formData, return_defective_parts: e.target.checked })}
-                              className="h-4 w-4"
-                            />
-                            <span className="text-sm">Требуется</span>
-                          </div>
+                        <div className="flex items-center space-x-3 pt-5">
+                          <input type="checkbox" checked={formData.return_defective_parts || false} onChange={(e) => setFormData({ ...formData, return_defective_parts: e.target.checked })} className="h-4 w-4" />
+                          <span className="text-xs">Возврат деталей</span>
                         </div>
                       </div>
                     </div>
 
                     {/* ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-700 uppercase">Дополнительная информация</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Дополнительно</h3>
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <Label>Менеджер</Label>
-                          <Select
-                            value={formData.manager_id?.toString() || ''}
-                            onValueChange={(value) => setFormData({ ...formData, manager_id: parseInt(value) })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Выберите менеджера" />
+                          <Label className="text-xs">Менеджер</Label>
+                          <Select value={formData.manager_id?.toString() || ''} onValueChange={(value) => setFormData({ ...formData, manager_id: parseInt(value) })}>
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue placeholder="Выберите" />
                             </SelectTrigger>
                             <SelectContent>
                               {users.map((user) => (
-                                <SelectItem key={user.id} value={user.id.toString()}>
-                                  {user.full_name} ({user.position})
-                                </SelectItem>
+                                <SelectItem key={user.id} value={user.id.toString()}>{user.full_name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <Label>Ориентировочная цена (₽)</Label>
-                          <Input
-                            type="number"
-                            value={formData.estimated_price || ''}
-                            onChange={(e) => setFormData({ ...formData, estimated_price: e.target.value })}
-                          />
+                          <Label className="text-xs">Цена (₽)</Label>
+                          <Input className="h-8 text-sm" type="number" value={formData.estimated_price || ''} onChange={(e) => setFormData({ ...formData, estimated_price: e.target.value })} />
                         </div>
                         <div>
-                          <Label>Предоплата (₽)</Label>
-                          <Input
-                            type="number"
-                            value={formData.prepayment || ''}
-                            onChange={(e) => setFormData({ ...formData, prepayment: e.target.value })}
-                          />
+                          <Label className="text-xs">Предоплата (₽)</Label>
+                          <Input className="h-8 text-sm" type="number" value={formData.prepayment || ''} onChange={(e) => setFormData({ ...formData, prepayment: e.target.value })} />
                         </div>
-                        <div>
-                          <Label>Крайний срок</Label>
-                          <Input
-                            type="date"
-                            value={formData.deadline_date || ''}
-                            onChange={(e) => setFormData({ ...formData, deadline_date: e.target.value })}
-                          />
+                        <div className="col-span-3">
+                          <Label className="text-xs">Крайний срок</Label>
+                          <Input className="h-8 text-sm" type="date" value={formData.deadline_date || ''} onChange={(e) => setFormData({ ...formData, deadline_date: e.target.value })} />
                         </div>
-                        <div className="col-span-2">
-                          <Label>Комментарий приёмщика</Label>
-                          <Textarea
-                            value={formData.receiver_comment || ''}
-                            onChange={(e) => setFormData({ ...formData, receiver_comment: e.target.value })}
-                            rows={2}
-                          />
+                        <div className="col-span-3">
+                          <Label className="text-xs">Комментарий приёмщика</Label>
+                          <Textarea className="text-sm" value={formData.receiver_comment || ''} onChange={(e) => setFormData({ ...formData, receiver_comment: e.target.value })} rows={2} />
                         </div>
-                        <div className="col-span-2">
-                          <Label>Рекомендация клиенту</Label>
-                          <Textarea
-                            value={formData.recommendation || ''}
-                            onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })}
-                            rows={3}
-                          />
+                        <div className="col-span-3">
+                          <Label className="text-xs">Рекомендация клиенту</Label>
+                          <Textarea className="text-sm" value={formData.recommendation || ''} onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })} rows={2} />
                         </div>
                       </div>
                     </div>

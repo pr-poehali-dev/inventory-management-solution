@@ -257,7 +257,30 @@ export default function OrdersPage() {
         order={orderToEdit}
         open={showEditDialog}
         onClose={() => setShowEditDialog(false)}
-        onSave={handleSaveOrder}
+        onSave={async (formData) => {
+          try {
+            await fetch(API_URL, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...formData, id: orderToEdit.id }),
+            });
+            
+            if (formData.items && formData.items.length > 0) {
+              await fetch(`${API_URL}?orderId=${orderToEdit.id}&action=items`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: formData.items }),
+              });
+            }
+            
+            toast.success('Заказ обновлён');
+            setShowEditDialog(false);
+            fetchOrders();
+          } catch (error) {
+            console.error('Error saving order:', error);
+            toast.error('Ошибка сохранения заказа');
+          }
+        }}
       />
 
       {/* Print Dialog */}
