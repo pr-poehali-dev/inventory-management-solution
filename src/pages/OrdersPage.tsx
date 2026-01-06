@@ -12,6 +12,7 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 import OrderForm from '@/components/OrderForm';
 import OrderEditDialog from '@/components/OrderEditDialog';
+import { getOrders, getOrderById, deleteOrder, getStatuses } from '@/lib/db';
 
 type Order = {
   id: number;
@@ -74,8 +75,7 @@ export default function OrdersPage() {
 
   const fetchStatuses = async () => {
     try {
-      const response = await fetch(`${SETTINGS_API_URL}?type=statuses`);
-      const data = await response.json();
+      const data = await getStatuses();
       setStatuses(data || []);
     } catch (error) {
       console.error('Error fetching statuses:', error);
@@ -85,8 +85,8 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      let url = API_URL;
       
+      let statusCode = statusFilter;
       if (statusFilter !== 'all') {
         const statusMap: Record<string, string> = {
           'Новый': 'new',
@@ -96,28 +96,10 @@ export default function OrdersPage() {
           'Выдан': 'completed',
           'Отменён': 'canceled'
         };
-        const statusCode = statusMap[statusFilter] || statusFilter;
-        url = `${API_URL}?status=${statusCode}`;
+        statusCode = statusMap[statusFilter] || statusFilter;
       }
       
-      console.log('Fetching orders from:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Orders response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Orders data:', data);
+      const data = await getOrders(statusCode === 'all' ? undefined : statusCode);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -134,8 +116,7 @@ export default function OrdersPage() {
 
   const handleEditOrder = async (order: Order) => {
     try {
-      const response = await fetch(`${API_URL}?id=${order.id}`);
-      const fullOrder = await response.json();
+      const fullOrder = await getOrderById(order.id);
       setOrderToEdit(fullOrder);
       setShowEditDialog(true);
     } catch (error) {
@@ -173,18 +154,13 @@ export default function OrdersPage() {
     if (!confirm('Удалить этот заказ?')) return;
 
     try {
-      const response = await fetch(`${API_URL}?id=${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        toast.error(data.error || 'Ошибка удаления заказа');
-        return;
+      const success = await deleteOrder(id);
+      if (success) {
+        toast.success('Заказ удалён');
+        fetchOrders();
+      } else {
+        toast.error('Ошибка удаления заказа');
       }
-      
-      toast.success('Заказ удалён');
-      fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
       toast.error('Ошибка удаления заказа');

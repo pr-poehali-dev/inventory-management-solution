@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { getDirectoryItems, getStatuses, getOrderHistory, getOrderItems, addOrderHistory } from '@/lib/db';
 
 type OrderEditDialogProps = {
   order: any | null;
@@ -53,7 +54,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
       fetchUsers();
       fetchProducts();
       fetchServices();
-      fetchStatuses();
+      fetchStatusesData();
     }
   }, [open, order]);
 
@@ -80,17 +81,11 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
     });
 
     try {
-      const itemsRes = await fetch(`${ORDERS_API}?orderId=${order.id}&action=items`);
-      if (itemsRes.ok) {
-        const itemsData = await itemsRes.json();
-        setOrderItems(Array.isArray(itemsData) ? itemsData : []);
-      }
+      const itemsData = await getOrderItems(order.id);
+      setOrderItems(Array.isArray(itemsData) ? itemsData : []);
 
-      const historyRes = await fetch(`${ORDERS_API}?orderId=${order.id}&action=history`);
-      if (historyRes.ok) {
-        const historyData = await historyRes.json();
-        setHistory(Array.isArray(historyData) ? historyData : []);
-      }
+      const historyData = await getOrderHistory(order.id);
+      setHistory(Array.isArray(historyData) ? historyData : []);
     } catch (error) {
       console.error('Error loading order data:', error);
       setOrderItems([]);
@@ -100,8 +95,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${DIRECTORIES_API}?type=users`);
-      const data = await response.json();
+      const data = await getDirectoryItems('users');
       setUsers(data?.filter((u: any) => u.is_active) || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -110,8 +104,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${DIRECTORIES_API}?type=products`);
-      const data = await response.json();
+      const data = await getDirectoryItems('products');
       setProducts(data?.filter((p: any) => p.is_active) || []);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -120,19 +113,17 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${DIRECTORIES_API}?type=services`);
-      const data = await response.json();
+      const data = await getDirectoryItems('services');
       setServices(data?.filter((s: any) => s.is_active) || []);
     } catch (error) {
       console.error('Error fetching services:', error);
     }
   };
 
-  const fetchStatuses = async () => {
+  const fetchStatusesData = async () => {
     try {
-      const response = await fetch('https://functions.poehali.dev/6123a2c4-f406-4686-ab76-a98c948f8bd8?type=statuses');
-      const data = await response.json();
-      setStatuses(data?.filter((s: any) => s.is_active) || []);
+      const data = await getStatuses();
+      setStatuses(data || []);
     } catch (error) {
       console.error('Error fetching statuses:', error);
     }
@@ -187,14 +178,7 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
     if (!historyComment.trim() || !order) return;
     
     try {
-      await fetch(`${ORDERS_API}?orderId=${order.id}&action=history`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: historyComment,
-          action_type: 'comment',
-        }),
-      });
+      await addOrderHistory(order.id, 'comment', historyComment);
       setHistoryComment('');
       loadOrderData();
     } catch (error) {
