@@ -145,7 +145,10 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
   };
 
   const calculateTotals = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+    if (!Array.isArray(orderItems)) {
+      return { subtotal: 0, discount: 0, total: 0 };
+    }
+    const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const discount = formData.discount_percent 
       ? subtotal * (formData.discount_percent / 100)
       : formData.discount_amount || 0;
