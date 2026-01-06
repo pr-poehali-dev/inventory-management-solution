@@ -20,8 +20,7 @@ const ORDERS_API = 'https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76d
 const DIRECTORIES_API = 'https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76';
 
 export default function OrderEditDialog({ order, open, onClose, onSave }: OrderEditDialogProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'materials' | 'history'>('info');
-  const [activeInfoTab, setActiveInfoTab] = useState<'general' | 'materials-work'>('general');
+  const [activeTab, setActiveTab] = useState<'info' | 'materials'>('info');
   
   const [formData, setFormData] = useState<any>({
     contractor_name: '',
@@ -194,10 +193,10 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[95vh] p-0">
+      <DialogContent className="max-w-[98vw] h-[98vh] p-0">
         <div className="flex flex-col h-full">
           {/* Fixed Header */}
-          <div className="border-b bg-white p-4 space-y-3">
+          <div className="border-b bg-white p-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Заказ №{order?.order_number}</h2>
               <div className="flex gap-2">
@@ -205,308 +204,264 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                 <Button variant="outline" onClick={onClose}>Закрыть</Button>
               </div>
             </div>
-            
-            <div className="grid grid-cols-5 gap-3 text-sm bg-slate-50 p-3 rounded-lg">
-              <div>
-                <div className="text-slate-500 text-xs">Контрагент</div>
-                <div className="font-medium">{formData.contractor_name}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 text-xs">Телефон</div>
-                <div className="font-medium">{formData.phone}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 text-xs">Тип устройства</div>
-                <div className="font-medium">{formData.device_type}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 text-xs">Марка</div>
-                <div className="font-medium">{formData.brand}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 text-xs">Модель</div>
-                <div className="font-medium">{formData.model}</div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 border-b">
-              <button
-                onClick={() => setActiveTab('info')}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                  activeTab === 'info'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-600 hover:text-slate-900'
-                )}
-              >
-                Редактирование заказа
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                  activeTab === 'history'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-600 hover:text-slate-900'
-                )}
-              >
-                История
-              </button>
-            </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-6">
-            {activeTab === 'info' && (
-              <div>
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => setActiveInfoTab('general')}
-                    className={cn(
-                      'px-4 py-2 text-sm font-medium rounded-lg',
-                      activeInfoTab === 'general'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    )}
-                  >
-                    Информация о заказе
-                  </button>
-                  <button
-                    onClick={() => setActiveInfoTab('materials-work')}
-                    className={cn(
-                      'px-4 py-2 text-sm font-medium rounded-lg',
-                      activeInfoTab === 'materials-work'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    )}
-                  >
-                    Работы и материалы
-                  </button>
-                </div>
+          <div className="flex-1 overflow-hidden flex">
+            {/* Left Side - Main Content */}
+            <div className="flex-1 overflow-auto p-4">
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setActiveTab('info')}
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium rounded-lg',
+                    activeTab === 'info'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  )}
+                >
+                  Информация о заказе
+                </button>
+                <button
+                  onClick={() => setActiveTab('materials')}
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium rounded-lg',
+                    activeTab === 'materials'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  )}
+                >
+                  Работы и материалы
+                </button>
+              </div>
 
-                {activeInfoTab === 'general' && (
-                  <div className="space-y-4 max-w-6xl">
-                    {/* КЛИЕНТ */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Клиент</h3>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <Label className="text-xs">Контрагент *</Label>
-                          <Input className="h-8 text-sm" value={formData.contractor_name || ''} onChange={(e) => setFormData({ ...formData, contractor_name: e.target.value })} required />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Телефон *</Label>
-                          <Input className="h-8 text-sm" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Адрес</Label>
-                          <Input className="h-8 text-sm" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
-                        </div>
+              {activeTab === 'info' && (
+                <div className="space-y-3">
+                  {/* КЛИЕНТ */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Клиент</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-xs">Контрагент *</Label>
+                        <Input className="h-7 text-xs" value={formData.contractor_name || ''} onChange={(e) => setFormData({ ...formData, contractor_name: e.target.value })} required />
                       </div>
-                    </div>
-
-                    {/* УСТРОЙСТВО */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Устройство</h3>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <Label className="text-xs">Серийный номер</Label>
-                          <Input className="h-8 text-sm" value={formData.serial_number || ''} onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Цвет</Label>
-                          <Input className="h-8 text-sm" value={formData.color || ''} onChange={(e) => setFormData({ ...formData, color: e.target.value })} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Комплектация</Label>
-                          <Input className="h-8 text-sm" value={formData.accessories || ''} onChange={(e) => setFormData({ ...formData, accessories: e.target.value })} />
-                        </div>
-                        <div className="col-span-3">
-                          <Label className="text-xs">Внешний вид</Label>
-                          <Textarea className="text-sm" value={formData.appearance || ''} onChange={(e) => setFormData({ ...formData, appearance: e.target.value })} rows={2} />
-                        </div>
-                        <div className="col-span-3">
-                          <Label className="text-xs">Неисправность *</Label>
-                          <Textarea className="text-sm" value={formData.malfunction || ''} onChange={(e) => setFormData({ ...formData, malfunction: e.target.value })} rows={2} required />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Защитный код</Label>
-                          <Input className="h-8 text-sm" type="password" value={formData.security_code || ''} onChange={(e) => setFormData({ ...formData, security_code: e.target.value })} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Причина поломки</Label>
-                          <Input className="h-8 text-sm" value={formData.failure_reason || ''} onChange={(e) => setFormData({ ...formData, failure_reason: e.target.value })} />
-                        </div>
-                        <div className="flex items-center space-x-3 pt-5">
-                          <input type="checkbox" checked={formData.device_turns_on || false} onChange={(e) => setFormData({ ...formData, device_turns_on: e.target.checked })} className="h-4 w-4" />
-                          <span className="text-xs">Включается</span>
-                        </div>
-                        <div className="col-span-2">
-                          <Label className="text-xs">Что ремонтируем?</Label>
-                          <Textarea className="text-sm" value={formData.repair_description || ''} onChange={(e) => setFormData({ ...formData, repair_description: e.target.value })} rows={2} />
-                        </div>
-                        <div className="flex items-center space-x-3 pt-5">
-                          <input type="checkbox" checked={formData.return_defective_parts || false} onChange={(e) => setFormData({ ...formData, return_defective_parts: e.target.checked })} className="h-4 w-4" />
-                          <span className="text-xs">Возврат деталей</span>
-                        </div>
+                      <div>
+                        <Label className="text-xs">Телефон *</Label>
+                        <Input className="h-7 text-xs" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
                       </div>
-                    </div>
-
-                    {/* ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Дополнительно</h3>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <Label className="text-xs">Менеджер</Label>
-                          <Select value={formData.manager_id?.toString() || ''} onValueChange={(value) => setFormData({ ...formData, manager_id: parseInt(value) })}>
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue placeholder="Выберите" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {users.map((user) => (
-                                <SelectItem key={user.id} value={user.id.toString()}>{user.full_name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-xs">Цена (₽)</Label>
-                          <Input className="h-8 text-sm" type="number" value={formData.estimated_price || ''} onChange={(e) => setFormData({ ...formData, estimated_price: e.target.value })} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Предоплата (₽)</Label>
-                          <Input className="h-8 text-sm" type="number" value={formData.prepayment || ''} onChange={(e) => setFormData({ ...formData, prepayment: e.target.value })} />
-                        </div>
-                        <div className="col-span-3">
-                          <Label className="text-xs">Крайний срок</Label>
-                          <Input className="h-8 text-sm" type="date" value={formData.deadline_date || ''} onChange={(e) => setFormData({ ...formData, deadline_date: e.target.value })} />
-                        </div>
-                        <div className="col-span-3">
-                          <Label className="text-xs">Комментарий приёмщика</Label>
-                          <Textarea className="text-sm" value={formData.receiver_comment || ''} onChange={(e) => setFormData({ ...formData, receiver_comment: e.target.value })} rows={2} />
-                        </div>
-                        <div className="col-span-3">
-                          <Label className="text-xs">Рекомендация клиенту</Label>
-                          <Textarea className="text-sm" value={formData.recommendation || ''} onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })} rows={2} />
-                        </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Адрес</Label>
+                        <Input className="h-7 text-xs" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                       </div>
                     </div>
                   </div>
-                )}
 
-                {activeInfoTab === 'materials-work' && (
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowProductSearch(!showProductSearch)}
-                      >
-                        <Icon name="Plus" size={14} className="mr-1" />
-                        Добавить товар
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowServiceSearch(!showServiceSearch)}
-                      >
-                        <Icon name="Plus" size={14} className="mr-1" />
-                        Добавить работу
-                      </Button>
+                  {/* УСТРОЙСТВО */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Устройство</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-xs">Серийный номер</Label>
+                        <Input className="h-7 text-xs" value={formData.serial_number || ''} onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Цвет</Label>
+                        <Input className="h-7 text-xs" value={formData.color || ''} onChange={(e) => setFormData({ ...formData, color: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Защитный код</Label>
+                        <Input className="h-7 text-xs" type="password" value={formData.security_code || ''} onChange={(e) => setFormData({ ...formData, security_code: e.target.value })} />
+                      </div>
+                      <div className="flex items-center space-x-2 pt-4">
+                        <input type="checkbox" checked={formData.device_turns_on || false} onChange={(e) => setFormData({ ...formData, device_turns_on: e.target.checked })} className="h-3 w-3" />
+                        <span className="text-xs">Включается</span>
+                      </div>
+                      <div className="col-span-4">
+                        <Label className="text-xs">Внешний вид</Label>
+                        <Textarea className="text-xs min-h-[50px]" value={formData.appearance || ''} onChange={(e) => setFormData({ ...formData, appearance: e.target.value })} rows={2} />
+                      </div>
+                      <div className="col-span-4">
+                        <Label className="text-xs">Неисправность *</Label>
+                        <Textarea className="text-xs min-h-[50px]" value={formData.malfunction || ''} onChange={(e) => setFormData({ ...formData, malfunction: e.target.value })} rows={2} required />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Причина поломки</Label>
+                        <Input className="h-7 text-xs" value={formData.failure_reason || ''} onChange={(e) => setFormData({ ...formData, failure_reason: e.target.value })} />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Комплектация</Label>
+                        <Input className="h-7 text-xs" value={formData.accessories || ''} onChange={(e) => setFormData({ ...formData, accessories: e.target.value })} />
+                      </div>
+                      <div className="col-span-3">
+                        <Label className="text-xs">Что ремонтируем?</Label>
+                        <Textarea className="text-xs min-h-[50px]" value={formData.repair_description || ''} onChange={(e) => setFormData({ ...formData, repair_description: e.target.value })} rows={2} />
+                      </div>
+                      <div className="flex items-center space-x-2 pt-4">
+                        <input type="checkbox" checked={formData.return_defective_parts || false} onChange={(e) => setFormData({ ...formData, return_defective_parts: e.target.checked })} className="h-3 w-3" />
+                        <span className="text-xs">Возврат деталей</span>
+                      </div>
                     </div>
+                  </div>
 
-                    {showProductSearch && (
-                      <div className="bg-slate-50 p-3 rounded-lg space-y-2">
-                        <Input
-                          placeholder="Поиск товара..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        <div className="max-h-48 overflow-y-auto space-y-1">
-                          {products
-                            .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                            .slice(0, 10)
-                            .map((product) => (
-                              <button
-                                key={product.id}
-                                onClick={() => addItem(product, 'product')}
-                                className="w-full text-left p-2 hover:bg-white rounded text-sm"
-                              >
-                                <div className="font-medium">{product.name}</div>
-                                <div className="text-xs text-slate-500">{product.sale_price} ₽</div>
-                              </button>
+                  {/* ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-600 uppercase border-b pb-1">Дополнительно</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-xs">Менеджер</Label>
+                        <Select value={formData.manager_id?.toString() || ''} onValueChange={(value) => setFormData({ ...formData, manager_id: parseInt(value) })}>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue placeholder="Выберите" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users.map((user) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>{user.full_name}</SelectItem>
                             ))}
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-
-                    {showServiceSearch && (
-                      <div className="bg-slate-50 p-3 rounded-lg space-y-2">
-                        <Input
-                          placeholder="Поиск работы..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        <div className="max-h-48 overflow-y-auto space-y-1">
-                          {services
-                            .filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                            .slice(0, 10)
-                            .map((service) => (
-                              <button
-                                key={service.id}
-                                onClick={() => addItem(service, 'service')}
-                                className="w-full text-left p-2 hover:bg-white rounded text-sm"
-                              >
-                                <div className="font-medium">{service.name}</div>
-                                <div className="text-xs text-slate-500">{service.price} ₽</div>
-                              </button>
-                            ))}
-                        </div>
+                      <div>
+                        <Label className="text-xs">Цена (₽)</Label>
+                        <Input className="h-7 text-xs" type="number" value={formData.estimated_price || ''} onChange={(e) => setFormData({ ...formData, estimated_price: e.target.value })} />
                       </div>
-                    )}
+                      <div>
+                        <Label className="text-xs">Предоплата (₽)</Label>
+                        <Input className="h-7 text-xs" type="number" value={formData.prepayment || ''} onChange={(e) => setFormData({ ...formData, prepayment: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Крайний срок</Label>
+                        <Input className="h-7 text-xs" type="date" value={formData.deadline_date || ''} onChange={(e) => setFormData({ ...formData, deadline_date: e.target.value })} />
+                      </div>
+                      <div className="col-span-4">
+                        <Label className="text-xs">Комментарий приёмщика</Label>
+                        <Textarea className="text-xs min-h-[50px]" value={formData.receiver_comment || ''} onChange={(e) => setFormData({ ...formData, receiver_comment: e.target.value })} rows={2} />
+                      </div>
+                      <div className="col-span-4">
+                        <Label className="text-xs">Рекомендация клиенту</Label>
+                        <Textarea className="text-xs min-h-[50px]" value={formData.recommendation || ''} onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })} rows={2} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
+              {activeTab === 'materials' && (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProductSearch(!showProductSearch)}
+                    >
+                      <Icon name="Plus" size={14} className="mr-1" />
+                      Добавить товар
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowServiceSearch(!showServiceSearch)}
+                    >
+                      <Icon name="Plus" size={14} className="mr-1" />
+                      Добавить работу
+                    </Button>
+                  </div>
+
+                  {showProductSearch && (
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-2">
+                      <Input
+                        placeholder="Поиск товара..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="text-xs"
+                      />
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {products
+                          .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .slice(0, 10)
+                          .map((product) => (
+                            <button
+                              key={product.id}
+                              onClick={() => addItem(product, 'product')}
+                              className="w-full text-left p-2 hover:bg-white rounded text-xs"
+                            >
+                              <div className="font-medium">{product.name}</div>
+                              <div className="text-slate-500">{product.sale_price} ₽</div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {showServiceSearch && (
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-2">
+                      <Input
+                        placeholder="Поиск работы..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="text-xs"
+                      />
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {services
+                          .filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .slice(0, 10)
+                          .map((service) => (
+                            <button
+                              key={service.id}
+                              onClick={() => addItem(service, 'service')}
+                              className="w-full text-left p-2 hover:bg-white rounded text-xs"
+                            >
+                              <div className="font-medium">{service.name}</div>
+                              <div className="text-slate-500">{service.price} ₽</div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {Array.isArray(orderItems) && orderItems.length > 0 && (
                     <div className="bg-white rounded-lg border overflow-hidden">
-                      <table className="w-full">
+                      <table className="w-full text-xs">
                         <thead className="bg-slate-50 border-b">
                           <tr>
-                            <th className="text-left p-2 text-xs font-semibold">Наименование</th>
-                            <th className="text-center p-2 text-xs font-semibold w-20">Кол-во</th>
-                            <th className="text-center p-2 text-xs font-semibold w-24">Гарантия</th>
-                            <th className="text-right p-2 text-xs font-semibold w-28">Цена, руб</th>
-                            <th className="text-right p-2 text-xs font-semibold w-28">Сумма</th>
-                            <th className="w-10"></th>
+                            <th className="text-left p-2 font-semibold">Наименование</th>
+                            <th className="text-center p-2 font-semibold w-20">Кол-во</th>
+                            <th className="text-center p-2 font-semibold w-20">Гарантия</th>
+                            <th className="text-right p-2 font-semibold w-24">Цена</th>
+                            <th className="text-right p-2 font-semibold w-24">Сумма</th>
+                            <th className="w-8"></th>
                           </tr>
                         </thead>
                         <tbody>
-                          {Array.isArray(orderItems) && orderItems.map((item) => (
+                          {orderItems.map((item) => (
                             <tr key={item.id} className="border-b">
-                              <td className="p-2 text-sm">{item.item_name}</td>
-                              <td className="p-2">
+                              <td className="p-1.5">{item.item_name}</td>
+                              <td className="p-1.5">
                                 <Input
                                   type="number"
                                   value={item.quantity}
                                   onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value))}
-                                  className="w-full text-center text-sm"
+                                  className="w-full text-center text-xs h-7"
                                   step="0.01"
                                 />
                               </td>
-                              <td className="p-2 text-center text-sm">{item.warranty_months} мес</td>
-                              <td className="p-2">
+                              <td className="p-1.5 text-center">{item.warranty_months} мес</td>
+                              <td className="p-1.5">
                                 <Input
                                   type="number"
                                   value={item.price}
                                   onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value))}
-                                  className="w-full text-right text-sm"
+                                  className="w-full text-right text-xs h-7"
                                 />
                               </td>
-                              <td className="p-2 text-right text-sm font-medium">{(Number(item.total) || 0).toFixed(2)}</td>
-                              <td className="p-2">
+                              <td className="p-1.5 text-right font-medium">{(Number(item.total) || 0).toFixed(2)}</td>
+                              <td className="p-1.5">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeItem(item.id)}
+                                  className="h-6 w-6 p-0"
                                 >
-                                  <Icon name="Trash2" size={14} />
+                                  <Icon name="Trash2" size={12} />
                                 </Button>
                               </td>
                             </tr>
@@ -514,96 +469,99 @@ export default function OrderEditDialog({ order, open, onClose, onSave }: OrderE
                         </tbody>
                       </table>
                     </div>
+                  )}
 
-                    <div className="bg-slate-50 p-4 rounded-lg space-y-2 max-w-md ml-auto">
-                      <div className="flex justify-between text-sm">
-                        <span>Итого товаров и услуг:</span>
-                        <span className="font-medium">{(Number(subtotal) || 0).toFixed(2)} ₽</span>
-                      </div>
-                      
-                      <div className="flex gap-2 items-center">
-                        <Label className="text-sm">Скидка:</Label>
-                        <Input
-                          type="number"
-                          placeholder="%"
-                          value={formData.discount_percent || ''}
-                          onChange={(e) => setFormData({ ...formData, discount_percent: parseFloat(e.target.value) || 0, discount_amount: 0 })}
-                          className="w-20 text-sm"
-                        />
-                        <span className="text-sm">или</span>
-                        <Input
-                          type="number"
-                          placeholder="₽"
-                          value={formData.discount_amount || ''}
-                          onChange={(e) => setFormData({ ...formData, discount_amount: parseFloat(e.target.value) || 0, discount_percent: 0 })}
-                          className="w-24 text-sm"
-                        />
-                      </div>
-                      
-                      {discount > 0 && (
-                        <div className="flex justify-between text-sm text-red-600">
-                          <span>Скидка:</span>
-                          <span>-{(Number(discount) || 0).toFixed(2)} ₽</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between text-base font-bold border-t pt-2">
-                        <span>К оплате:</span>
-                        <span>{(Number(total) || 0).toFixed(2)} ₽</span>
-                      </div>
+                  <div className="bg-slate-50 p-3 rounded-lg space-y-2 max-w-md ml-auto">
+                    <div className="flex justify-between text-xs">
+                      <span>Итого товаров и услуг:</span>
+                      <span className="font-medium">{(Number(subtotal) || 0).toFixed(2)} ₽</span>
                     </div>
-
-                    <div>
-                      <Label>Рекомендация клиенту</Label>
-                      <Textarea
-                        value={formData.recommendation || ''}
-                        onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })}
-                        rows={3}
-                        placeholder="Введите рекомендации..."
+                    
+                    <div className="flex gap-2 items-center">
+                      <Label className="text-xs">Скидка:</Label>
+                      <Input
+                        type="number"
+                        placeholder="%"
+                        value={formData.discount_percent || ''}
+                        onChange={(e) => setFormData({ ...formData, discount_percent: parseFloat(e.target.value) || 0, discount_amount: 0 })}
+                        className="w-16 text-xs h-7"
+                      />
+                      <span className="text-xs">или</span>
+                      <Input
+                        type="number"
+                        placeholder="₽"
+                        value={formData.discount_amount || ''}
+                        onChange={(e) => setFormData({ ...formData, discount_amount: parseFloat(e.target.value) || 0, discount_percent: 0 })}
+                        className="w-20 text-xs h-7"
                       />
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'history' && (
-              <div className="space-y-4 max-w-3xl">
-                <div className="space-y-3">
-                  {Array.isArray(history) && history.map((item) => (
-                    <div key={item.id} className="bg-white border rounded-lg p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="text-sm font-medium">{item.action_type}</div>
-                        <div className="text-xs text-slate-500">
-                          {new Date(item.created_at).toLocaleString('ru-RU')}
-                        </div>
+                    
+                    {discount > 0 && (
+                      <div className="flex justify-between text-xs text-red-600">
+                        <span>Скидка:</span>
+                        <span>-{(Number(discount) || 0).toFixed(2)} ₽</span>
                       </div>
-                      <div className="text-sm text-slate-600">{item.description}</div>
+                    )}
+                    
+                    <div className="flex justify-between text-sm font-bold border-t pt-2">
+                      <span>К оплате:</span>
+                      <span>{(Number(total) || 0).toFixed(2)} ₽</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <div className="border-t pt-4">
-                  <Label>Добавить комментарий</Label>
-                  <Textarea
-                    value={historyComment}
-                    onChange={(e) => setHistoryComment(e.target.value)}
-                    rows={3}
-                    placeholder="Введите комментарий..."
-                  />
-                  <div className="flex gap-2 mt-2">
-                    <Button size="sm" onClick={addHistoryComment}>
-                      <Icon name="Send" size={14} className="mr-1" />
-                      Отправить
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Icon name="Paperclip" size={14} className="mr-1" />
-                      Прикрепить файл
-                    </Button>
+                  <div>
+                    <Label className="text-xs">Рекомендация клиенту</Label>
+                    <Textarea
+                      value={formData.recommendation || ''}
+                      onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })}
+                      rows={3}
+                      placeholder="Введите рекомендации..."
+                      className="text-xs"
+                    />
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Right Side - History */}
+            <div className="w-80 border-l bg-slate-50 overflow-auto p-4">
+              <h3 className="text-sm font-bold mb-3">История изменений</h3>
+              <div className="space-y-2">
+                {Array.isArray(history) && history.map((item) => (
+                  <div key={item.id} className="bg-white border rounded-lg p-2 shadow-sm">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="text-xs font-medium text-slate-700">{item.action_type}</div>
+                      <div className="text-[10px] text-slate-400">
+                        {new Date(item.created_at).toLocaleString('ru-RU', { 
+                          day: '2-digit', 
+                          month: '2-digit', 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-600">{item.description}</div>
+                  </div>
+                ))}
               </div>
-            )}
+
+              <div className="mt-4 pt-3 border-t">
+                <Label className="text-xs">Добавить комментарий</Label>
+                <Textarea
+                  value={historyComment}
+                  onChange={(e) => setHistoryComment(e.target.value)}
+                  rows={3}
+                  placeholder="Введите комментарий..."
+                  className="text-xs mt-1"
+                />
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" onClick={addHistoryComment} className="text-xs h-7">
+                    <Icon name="Send" size={12} className="mr-1" />
+                    Отправить
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>
