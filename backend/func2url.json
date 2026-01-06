@@ -1,3 +1,5 @@
 {
+  "directories-api": "https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76",
+  "orders-api": "https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76daedcb4",
   "shop-api": "https://functions.poehali.dev/ab255459-3f5e-417e-bc1c-6cfd39b319b0"
 }

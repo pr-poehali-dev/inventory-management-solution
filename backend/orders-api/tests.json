@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Get all orders",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    },
+    {
+      "name": "Create new order",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "phone": "+7 999 123-45-67",
+        "address": "Москва",
+        "malfunction": "Разбит экран",
+        "estimated_price": 5000
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "id": "number",
+        "order_number": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
