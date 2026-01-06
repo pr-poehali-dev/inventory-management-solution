@@ -85,7 +85,21 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const url = statusFilter === 'all' ? API_URL : `${API_URL}?status=${statusFilter}`;
+      let url = API_URL;
+      
+      if (statusFilter !== 'all') {
+        const statusMap: Record<string, string> = {
+          'Новый': 'new',
+          'В работе': 'in_progress',
+          'Ожидание запчастей': 'waiting_parts',
+          'Готов': 'ready',
+          'Выдан': 'completed',
+          'Отменён': 'canceled'
+        };
+        const statusCode = statusMap[statusFilter] || statusFilter;
+        url = `${API_URL}?status=${statusCode}`;
+      }
+      
       const response = await fetch(url);
       const data = await response.json();
       setOrders(data || []);

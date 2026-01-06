@@ -27,7 +27,8 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
     
     try:
@@ -409,7 +410,8 @@ def handler(event: dict, context) -> dict:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps(result, default=str)
+            'body': json.dumps(result, default=str),
+            'isBase64Encoded': False
         }
     
     except Exception as e:
@@ -429,7 +431,8 @@ def handler(event: dict, context) -> dict:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({'error': user_message, 'technical_error': error_msg})
+            'body': json.dumps({'error': user_message, 'technical_error': error_msg}),
+            'isBase64Encoded': False
         }
 
 def handle_order_items(event: dict, conn, cursor) -> dict:
@@ -442,7 +445,8 @@ def handle_order_items(event: dict, conn, cursor) -> dict:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Order ID required'})
+            'body': json.dumps({'error': 'Order ID required'}),
+            'isBase64Encoded': False
         }
     
     if method == 'GET':
@@ -485,7 +489,8 @@ def handle_order_items(event: dict, conn, cursor) -> dict:
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps(result, default=str)
+        'body': json.dumps(result, default=str),
+        'isBase64Encoded': False
     }
 
 def handle_order_history(event: dict, conn, cursor) -> dict:
@@ -498,7 +503,8 @@ def handle_order_history(event: dict, conn, cursor) -> dict:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Order ID required'})
+            'body': json.dumps({'error': 'Order ID required'}),
+            'isBase64Encoded': False
         }
     
     if method == 'GET':
@@ -537,6 +543,6 @@ def handle_order_history(event: dict, conn, cursor) -> dict:
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps(result, default=str)
+        'body': json.dumps(result, default=str),
+        'isBase64Encoded': False
     }
-        }

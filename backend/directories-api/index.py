@@ -40,7 +40,8 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
     
     try:
@@ -52,7 +53,8 @@ def handler(event: dict, context) -> dict:
             return {
                 'statusCode': 400,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Invalid directory type'})
+                'body': json.dumps({'error': 'Invalid directory type'}),
+                'isBase64Encoded': False
             }
         
         full_table = f"{SCHEMA}.{table_name}"
@@ -101,7 +103,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 400,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'ID is required'})
+                    'body': json.dumps({'error': 'ID is required'}),
+                    'isBase64Encoded': False
                 }
             
             set_clause = ', '.join([f"{key} = %s" for key in body.keys()])
@@ -121,7 +124,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 400,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'ID is required'})
+                    'body': json.dumps({'error': 'ID is required'}),
+                    'isBase64Encoded': False
                 }
             
             cursor.execute(f"DELETE FROM {full_table} WHERE id = %s", (item_id,))
@@ -137,7 +141,8 @@ def handler(event: dict, context) -> dict:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps(result, default=str)
+            'body': json.dumps(result, default=str),
+            'isBase64Encoded': False
         }
     
     except Exception as e:
@@ -147,5 +152,6 @@ def handler(event: dict, context) -> dict:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({'error': str(e)})
+            'body': json.dumps({'error': str(e)}),
+            'isBase64Encoded': False
         }
