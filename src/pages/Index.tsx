@@ -67,6 +67,7 @@ const Index = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCreateOrderDialogOpen, setIsCreateOrderDialogOpen] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState<Order['status'] | 'all'>('all');
+  const [selectedItems, setSelectedItems] = useState<{id: string, quantity: number}[]>([]);
 
   const inventoryData: InventoryItem[] = [
     { id: '1', name: 'Ноутбук Dell XPS 13', sku: 'LAP-001', category: 'Электроника', quantity: 5, minQuantity: 10, price: 89990, supplier: 'TechSupply' },
@@ -121,17 +122,54 @@ const Index = () => {
   const handleCreateOrder = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    if (selectedItems.length === 0) {
+      toast.error('Добавьте хотя бы один товар');
+      return;
+    }
+
+    const total = selectedItems.reduce((sum, item) => {
+      const product = inventoryData.find(p => p.id === item.id);
+      return sum + (product ? product.price * item.quantity : 0);
+    }, 0);
+
     const newOrder: Order = {
       id: `ORD-${1005 + ordersData.length}`,
       customerName: formData.get('customerName') as string,
-      items: parseInt(formData.get('items') as string) || 1,
-      total: parseInt(formData.get('total') as string) || 0,
+      items: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
+      total,
       status: 'pending',
       date: new Date().toISOString().split('T')[0],
     };
     setOrdersData(prev => [newOrder, ...prev]);
     toast.success('Заказ успешно создан');
     setIsCreateOrderDialogOpen(false);
+    setSelectedItems([]);
+  };
+
+  const handleAddItemToOrder = (itemId: string) => {
+    const existing = selectedItems.find(i => i.id === itemId);
+    if (existing) {
+      setSelectedItems(prev => 
+        prev.map(i => i.id === itemId ? {...i, quantity: i.quantity + 1} : i)
+      );
+    } else {
+      setSelectedItems(prev => [...prev, {id: itemId, quantity: 1}]);
+    }
+  };
+
+  const handleRemoveItemFromOrder = (itemId: string) => {
+    setSelectedItems(prev => prev.filter(i => i.id !== itemId));
+  };
+
+  const handleUpdateItemQuantity = (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      handleRemoveItemFromOrder(itemId);
+    } else {
+      setSelectedItems(prev => 
+        prev.map(i => i.id === itemId ? {...i, quantity} : i)
+      );
+    }
   };
 
   return (
@@ -479,7 +517,7 @@ const Index = () => {
                     Создать заказ
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Новый заказ</DialogTitle>
                     <DialogDescription>Создайте заказ для клиента</DialogDescription>
@@ -489,17 +527,98 @@ const Index = () => {
                       <Label htmlFor="customerName">Название клиента</Label>
                       <Input id="customerName" name="customerName" placeholder="ООО 'Компания'" required />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="items">Количество товаров</Label>
-                        <Input id="items" name="items" type="number" placeholder="1" min="1" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="total">Сумма (₽)</Label>
-                        <Input id="total" name="total" type="number" placeholder="0" min="0" required />
+
+                    <div className="space-y-2">
+                      <Label>Товары в заказе</Label>
+                      {selectedItems.length === 0 ? (
+                        <div className="text-sm text-muted-foreground p-4 border border-dashed rounded-lg text-center">
+                          Товары не добавлены. Выберите из списка ниже.
+                        </div>
+                      ) : (
+                        <div className="space-y-2 border rounded-lg p-3">
+                          {selectedItems.map(item => {
+                            const product = inventoryData.find(p => p.id === item.id);
+                            if (!product) return null;
+                            return (
+                              <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{product.name}</p>
+                                  <p className="text-xs text-muted-foreground">{product.price.toLocaleString('ru-RU')} ₽</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
+                                  >
+                                    <Icon name="Minus" size={14} />
+                                  </Button>
+                                  <span className="font-mono font-semibold w-8 text-center">{item.quantity}</span>
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
+                                  >
+                                    <Icon name="Plus" size={14} />
+                                  </Button>
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleRemoveItemFromOrder(item.id)}
+                                  >
+                                    <Icon name="Trash2" size={14} />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="pt-2 border-t mt-2 flex justify-between items-center">
+                            <span className="font-medium">Итого:</span>
+                            <span className="font-mono font-bold text-lg">
+                              {selectedItems.reduce((sum, item) => {
+                                const product = inventoryData.find(p => p.id === item.id);
+                                return sum + (product ? product.price * item.quantity : 0);
+                              }, 0).toLocaleString('ru-RU')} ₽
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Доступные товары</Label>
+                      <div className="border rounded-lg max-h-64 overflow-y-auto">
+                        {inventoryData.map(item => (
+                          <div 
+                            key={item.id} 
+                            className="flex items-center justify-between p-3 hover:bg-muted/50 border-b last:border-b-0"
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.price.toLocaleString('ru-RU')} ₽ • В наличии: {item.quantity}
+                              </p>
+                            </div>
+                            <Button 
+                              type="button"
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleAddItemToOrder(item.id)}
+                              disabled={selectedItems.some(i => i.id === item.id)}
+                            >
+                              {selectedItems.some(i => i.id === item.id) ? 'Добавлен' : 'Добавить'}
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <Button type="submit" className="w-full">Создать заказ</Button>
+
+                    <Button type="submit" className="w-full" disabled={selectedItems.length === 0}>
+                      Создать заказ
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
