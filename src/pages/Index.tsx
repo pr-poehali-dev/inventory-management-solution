@@ -7,6 +7,8 @@ import OrdersPage from './OrdersPage';
 import DirectoriesPage from './DirectoriesPage';
 import SettingsPage from './SettingsPage';
 import UsersPage from './UsersPage';
+import StatusesSettings from './StatusesSettings';
+import PrintTemplatesSettings from './PrintTemplatesSettings';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -32,6 +34,10 @@ const Index = () => {
         return <SettingsPage />;
       case 'settings-users':
         return <UsersPage />;
+      case 'settings-statuses':
+        return <StatusesSettings />;
+      case 'settings-print-templates':
+        return <PrintTemplatesSettings />;
       case 'shop':
         window.open('/shop', '_blank');
         return null;

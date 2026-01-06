@@ -25,9 +25,20 @@ type Order = {
 };
 
 const API_URL = 'https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76daedcb4';
+const SETTINGS_API_URL = 'https://functions.poehali.dev/6123a2c4-f406-4686-ab76-a98c948f8bd8';
+
+type OrderStatus = {
+  id: number;
+  name: string;
+  color: string;
+  icon: string;
+  sort_order: number;
+  is_active: boolean;
+};
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [statuses, setStatuses] = useState<OrderStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -57,8 +68,19 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
+    fetchStatuses();
     fetchOrders();
   }, [statusFilter]);
+
+  const fetchStatuses = async () => {
+    try {
+      const response = await fetch(`${SETTINGS_API_URL}?type=statuses`);
+      const data = await response.json();
+      setStatuses(data || []);
+    } catch (error) {
+      console.error('Error fetching statuses:', error);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -121,9 +143,16 @@ export default function OrdersPage() {
     if (!confirm('Удалить этот заказ?')) return;
 
     try {
-      await fetch(`${API_URL}?id=${id}`, {
+      const response = await fetch(`${API_URL}?id=${id}`, {
         method: 'DELETE',
       });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || 'Ошибка удаления заказа');
+        return;
+      }
+      
       toast.success('Заказ удалён');
       fetchOrders();
     } catch (error) {
@@ -157,30 +186,48 @@ export default function OrdersPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="relative flex-1 w-full">
-              <Icon name="Search" size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <CardHeader className="py-3">
+          <div className="space-y-3">
+            <div className="relative">
+              <Icon name="Search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Поиск по номеру, клиенту, телефону..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9 text-sm"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Статус" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все статусы</SelectItem>
-                {Object.entries(statusLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                  statusFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Icon name="LayoutGrid" size={14} />
+                Все
+              </button>
+              {statuses.filter(s => s.is_active).map((status) => (
+                <button
+                  key={status.id}
+                  onClick={() => setStatusFilter(status.name)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                    statusFilter === status.name
+                      ? 'text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  style={{
+                    backgroundColor: statusFilter === status.name ? status.color : undefined,
+                  }}
+                >
+                  <Icon name={status.icon as any} size={14} />
+                  {status.name}
+                </button>
+              ))}
+            </div>
           </div>
         </CardHeader>
         <CardContent>

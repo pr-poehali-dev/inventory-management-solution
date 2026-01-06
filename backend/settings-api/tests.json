@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "name": "Get all statuses",
+      "method": "GET",
+      "path": "/?type=statuses",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    },
+    {
+      "name": "Get all print templates",
+      "method": "GET",
+      "path": "/?type=print-templates",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    }
+  ]
+}

@@ -393,6 +393,9 @@ def handler(event: dict, context) -> dict:
             if not order_id:
                 raise ValueError('Order ID is required')
             
+            cursor.execute(f"DELETE FROM {SCHEMA}.order_accessories WHERE order_id = %s", (order_id,))
+            cursor.execute(f"DELETE FROM {SCHEMA}.order_items WHERE order_id = %s", (order_id,))
+            cursor.execute(f"DELETE FROM {SCHEMA}.order_history WHERE order_id = %s", (order_id,))
             cursor.execute(f"DELETE FROM {SCHEMA}.orders WHERE id = %s", (order_id,))
             conn.commit()
             result = {'success': True, 'deleted_id': order_id}
@@ -410,13 +413,23 @@ def handler(event: dict, context) -> dict:
         }
     
     except Exception as e:
+        error_msg = str(e)
+        user_message = error_msg
+        
+        if 'foreign key' in error_msg.lower():
+            user_message = 'Невозможно удалить запись, так как она используется в других документах'
+        elif 'not found' in error_msg.lower():
+            user_message = 'Запись не найдена'
+        elif 'duplicate' in error_msg.lower():
+            user_message = 'Запись с такими данными уже существует'
+        
         return {
             'statusCode': 500,
             'headers': {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({'error': str(e)})
+            'body': json.dumps({'error': user_message, 'technical_error': error_msg})
         }
 
 def handle_order_items(event: dict, conn, cursor) -> dict:

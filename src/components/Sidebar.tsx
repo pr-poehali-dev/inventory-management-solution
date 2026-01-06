@@ -84,6 +84,8 @@ const bottomMenuItems: MenuCategory[] = [
     label: 'Настройки',
     subcategories: [
       { id: 'settings-users', label: 'Пользователи' },
+      { id: 'settings-statuses', label: 'Статусы' },
+      { id: 'settings-print-templates', label: 'Печатные формы' },
     ],
   },
   { id: 'knowledge', icon: 'HelpCircle', label: 'База знаний' },
