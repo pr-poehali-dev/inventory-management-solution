@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,30 +23,11 @@ type Order = {
   estimated_price?: number;
 };
 
-export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 1,
-      order_number: '2024-001',
-      contractor_name: 'Иванов Иван Иванович',
-      phone: '+7 (999) 123-45-67',
-      device: 'iPhone 13 Pro',
-      status: 'new',
-      created_at: '2024-01-06T10:30:00',
-      estimated_price: 5000,
-    },
-    {
-      id: 2,
-      order_number: '2024-002',
-      contractor_name: 'Петров Петр Петрович',
-      phone: '+7 (999) 987-65-43',
-      device: 'Samsung Galaxy S21',
-      status: 'in_progress',
-      created_at: '2024-01-05T14:20:00',
-      estimated_price: 3500,
-    },
-  ]);
+const API_URL = 'https://functions.poehali.dev/a0a3f940-a595-406d-b57b-f0f76daedcb4';
 
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -72,6 +53,25 @@ export default function OrdersPage() {
     canceled: 'Отменён',
   };
 
+  useEffect(() => {
+    fetchOrders();
+  }, [statusFilter]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const url = statusFilter === 'all' ? API_URL : `${API_URL}?status=${statusFilter}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Ошибка загрузки заказов');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateOrder = () => {
     setEditingOrder(null);
     setIsDialogOpen(true);
@@ -82,30 +82,43 @@ export default function OrdersPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveOrder = (formData: any) => {
-    if (editingOrder) {
-      toast.success('Заказ обновлён');
-    } else {
-      const newOrder: Order = {
-        id: orders.length + 1,
-        order_number: `2024-${String(orders.length + 1).padStart(3, '0')}`,
-        contractor_name: formData.contractor_name,
-        phone: formData.phone,
-        device: formData.device,
-        status: 'new',
-        created_at: new Date().toISOString(),
-        estimated_price: parseFloat(formData.estimated_price) || 0,
-      };
-      setOrders([...orders, newOrder]);
-      toast.success('Заказ создан');
+  const handleSaveOrder = async (formData: any) => {
+    try {
+      if (editingOrder) {
+        await fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...formData, id: editingOrder.id }),
+        });
+        toast.success('Заказ обновлён');
+      } else {
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        toast.success('Заказ создан');
+      }
+      setIsDialogOpen(false);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error saving order:', error);
+      toast.error('Ошибка сохранения заказа');
     }
-    setIsDialogOpen(false);
   };
 
-  const handleDeleteOrder = (id: number) => {
-    if (confirm('Удалить этот заказ?')) {
-      setOrders(orders.filter((o) => o.id !== id));
+  const handleDeleteOrder = async (id: number) => {
+    if (!confirm('Удалить этот заказ?')) return;
+
+    try {
+      await fetch(`${API_URL}?id=${id}`, {
+        method: 'DELETE',
+      });
       toast.success('Заказ удалён');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Ошибка удаления заказа');
     }
   };
 
@@ -120,9 +133,7 @@ export default function OrdersPage() {
       (order.contractor_name && order.contractor_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (order.phone && order.phone.includes(searchQuery));
 
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   return (
@@ -163,7 +174,9 @@ export default function OrdersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredOrders.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8 text-slate-500">Загрузка...</div>
+          ) : filteredOrders.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               {searchQuery || statusFilter !== 'all' ? 'Ничего не найдено' : 'Нет заказов'}
             </div>
@@ -225,11 +238,7 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle>{editingOrder ? 'Редактирование заказа' : 'Новый заказ'}</DialogTitle>
           </DialogHeader>
-          <OrderForm
-            order={editingOrder}
-            onSave={handleSaveOrder}
-            onCancel={() => setIsDialogOpen(false)}
-          />
+          <OrderForm order={editingOrder} onSave={handleSaveOrder} onCancel={() => setIsDialogOpen(false)} />
         </DialogContent>
       </Dialog>
 
@@ -237,53 +246,46 @@ export default function OrdersPage() {
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Печать квитанции</DialogTitle>
+            <DialogTitle>Печать заказа-наряда №{selectedOrder?.order_number}</DialogTitle>
           </DialogHeader>
-          {selectedOrder && (
-            <div className="space-y-4">
-              <div className="border rounded-lg p-6 bg-white">
-                <h2 className="text-2xl font-bold text-center mb-6">Квитанция приёма устройства</h2>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Номер заказа:</span>
-                    <span>{selectedOrder.order_number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Дата:</span>
-                    <span>{new Date(selectedOrder.created_at).toLocaleString('ru-RU')}</span>
-                  </div>
-                  <hr />
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Клиент:</span>
-                    <span>{selectedOrder.contractor_name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Телефон:</span>
-                    <span>{selectedOrder.phone}</span>
-                  </div>
-                  <hr />
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Устройство:</span>
-                    <span>{selectedOrder.device}</span>
-                  </div>
-                  <hr />
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Ориентировочная стоимость:</span>
-                    <span>₽{selectedOrder.estimated_price}</span>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            <div className="bg-white p-6 border border-slate-200 rounded-lg" id="print-area">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-bold">ЗАКАЗ-НАРЯД</h2>
+                <p className="text-lg">№{selectedOrder?.order_number}</p>
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowPrintDialog(false)}>
-                  Отмена
-                </Button>
-                <Button onClick={() => window.print()}>
-                  <Icon name="Printer" size={16} className="mr-2" />
-                  Печать
-                </Button>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <strong>Дата:</strong> {selectedOrder && new Date(selectedOrder.created_at).toLocaleDateString('ru-RU')}
+                </p>
+                <p>
+                  <strong>Клиент:</strong> {selectedOrder?.contractor_name}
+                </p>
+                <p>
+                  <strong>Телефон:</strong> {selectedOrder?.phone}
+                </p>
+                <p>
+                  <strong>Устройство:</strong> {selectedOrder?.device}
+                </p>
+                <p>
+                  <strong>Стоимость:</strong> {selectedOrder?.estimated_price} ₽
+                </p>
               </div>
             </div>
-          )}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowPrintDialog(false)}>
+                Закрыть
+              </Button>
+              <Button
+                onClick={() => {
+                  window.print();
+                }}
+              >
+                <Icon name="Printer" size={16} className="mr-2" />
+                Печать
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

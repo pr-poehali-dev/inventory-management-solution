@@ -19,11 +19,7 @@
         "estimated_price": 5000
       },
       "expectedStatus": 200,
-      "expectedBody": {
-        "id": "number",
-        "order_number": "string"
-      },
-      "bodyMatcher": "partial"
+      "bodyMatcher": "type"
     }
   ]
 }

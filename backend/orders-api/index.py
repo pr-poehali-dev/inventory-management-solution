@@ -76,12 +76,17 @@ def handler(event: dict, context) -> dict:
             body = json.loads(event.get('body', '{}'))
             
             cursor.execute(f"""
-                SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM '[0-9]+$') AS INTEGER)), 0) + 1 
+                SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM '[0-9]+$') AS INTEGER)), 0) + 1 as next_num
                 FROM {SCHEMA}.orders 
                 WHERE order_number LIKE %s
             """, (f"{datetime.now().year}-%",))
-            next_num = cursor.fetchone()[0]
+            result_row = cursor.fetchone()
+            next_num = result_row['next_num'] if result_row else 1
             order_number = f"{datetime.now().year}-{str(next_num).zfill(3)}"
+            
+            deadline = None
+            if body.get('deadline_date'):
+                deadline = body.get('deadline_date') + ' ' + body.get('deadline_time', '00:00')
             
             cursor.execute(f"""
                 INSERT INTO {SCHEMA}.orders (
@@ -105,8 +110,8 @@ def handler(event: dict, context) -> dict:
                 body.get('repair_description'),
                 body.get('return_defective_parts', False),
                 body.get('estimated_price'),
-                body.get('prepayment', 0),
-                body.get('deadline_date') + ' ' + body.get('deadline_time', '00:00') if body.get('deadline_date') else None,
+                body.get('prepayment') or 0,
+                deadline,
                 body.get('receiver_comment')
             ))
             
@@ -147,6 +152,15 @@ def handler(event: dict, context) -> dict:
             ))
             conn.commit()
             result = {'success': True}
+        
+        elif method == 'DELETE':
+            order_id = event.get('queryStringParameters', {}).get('id')
+            if not order_id:
+                raise ValueError('Order ID is required')
+            
+            cursor.execute(f"DELETE FROM {SCHEMA}.orders WHERE id = %s", (order_id,))
+            conn.commit()
+            result = {'success': True, 'deleted_id': order_id}
         
         cursor.close()
         conn.close()
