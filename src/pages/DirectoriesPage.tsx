@@ -128,7 +128,7 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
     setLoading(false);
   };
 
-  const handleSave = async (formData: Record<string, string>) => {
+  const handleSave = async (formData: Record<string, any>) => {
     try {
       const typeMap: Record<string, string> = {
         'directories-contractors': 'contractors',
@@ -291,9 +291,20 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
             onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
-              const data: Record<string, string> = {};
+              const data: Record<string, any> = {};
               formData.forEach((value, key) => {
-                data[key] = value.toString();
+                const stringValue = value.toString().trim();
+                // Если поле пустое, не добавляем его (используется DEFAULT из БД)
+                if (stringValue === '') {
+                  return;
+                }
+                // Находим конфигурацию поля для определения типа
+                const fieldConfig = config.fields.find(f => f.name === key);
+                if (fieldConfig?.type === 'number') {
+                  data[key] = parseFloat(stringValue) || null;
+                } else {
+                  data[key] = stringValue;
+                }
               });
               handleSave(data);
             }}
