@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import UserManagement from './UserManagement';
 
 type InventoryItem = {
   id: string;
@@ -577,6 +579,18 @@ const Index = () => {
     printWindow.document.close();
   };
 
+  const { currentUser, logout, isAdmin } = useAuth();
+
+  const menuItems = [
+    { id: 'dashboard', icon: 'LayoutDashboard', label: 'Дашборд', adminOnly: false },
+    { id: 'inventory', icon: 'Package', label: 'Инвентарь', adminOnly: false },
+    { id: 'orders', icon: 'ShoppingCart', label: 'Заказы', adminOnly: false },
+    { id: 'suppliers', icon: 'Truck', label: 'Поставщики', adminOnly: false },
+    { id: 'analytics', icon: 'BarChart3', label: 'Аналитика', adminOnly: false },
+    { id: 'settings', icon: 'Settings', label: 'Настройки', adminOnly: false },
+    { id: 'users', icon: 'Users', label: 'Пользователи', adminOnly: true },
+  ];
+
   return (
     <div className="min-h-screen bg-background flex">
       <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -593,14 +607,9 @@ const Index = () => {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          {[
-            { id: 'dashboard', icon: 'LayoutDashboard', label: 'Дашборд' },
-            { id: 'inventory', icon: 'Package', label: 'Инвентарь' },
-            { id: 'orders', icon: 'ShoppingCart', label: 'Заказы' },
-            { id: 'suppliers', icon: 'Truck', label: 'Поставщики' },
-            { id: 'analytics', icon: 'BarChart3', label: 'Аналитика' },
-            { id: 'settings', icon: 'Settings', label: 'Настройки' },
-          ].map((item) => (
+          {menuItems
+            .filter(item => !item.adminOnly || isAdmin)
+            .map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
@@ -616,16 +625,25 @@ const Index = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-2">
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-              А
+              {currentUser?.username.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-sidebar-foreground">Администратор</p>
-              <p className="text-xs text-muted-foreground">admin@livesklad.ru</p>
+              <p className="text-sm font-medium text-sidebar-foreground">{currentUser?.username}</p>
+              <p className="text-xs text-muted-foreground">{currentUser?.email}</p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={logout}
+            className="w-full gap-2"
+          >
+            <Icon name="LogOut" size={16} />
+            Выйти
+          </Button>
         </div>
       </aside>
 
@@ -774,13 +792,14 @@ const Index = () => {
                 <h2 className="text-3xl font-bold text-foreground">Инвентарь</h2>
                 <p className="text-muted-foreground mt-1">Управление товарами на складе</p>
               </div>
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Icon name="Plus" size={18} />
-                    Добавить товар
-                  </Button>
-                </DialogTrigger>
+              {isAdmin && (
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Icon name="Plus" size={18} />
+                      Добавить товар
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Новый товар</DialogTitle>
@@ -841,6 +860,7 @@ const Index = () => {
                   </div>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
 
             <Card>
@@ -871,7 +891,7 @@ const Index = () => {
                       <TableHead>Остаток</TableHead>
                       <TableHead>Цена</TableHead>
                       <TableHead>Поставщик</TableHead>
-                      <TableHead></TableHead>
+                      {isAdmin && <TableHead></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -894,11 +914,13 @@ const Index = () => {
                         </TableCell>
                         <TableCell className="font-mono">{item.price.toLocaleString('ru-RU')} ₽</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{item.supplier}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Icon name="MoreVertical" size={18} />
-                          </Button>
-                        </TableCell>
+                        {isAdmin && (
+                          <TableCell>
+                            <Button variant="ghost" size="sm">
+                              <Icon name="MoreVertical" size={18} />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -915,8 +937,9 @@ const Index = () => {
                 <h2 className="text-3xl font-bold text-foreground">Заказы</h2>
                 <p className="text-muted-foreground mt-1">Управление заказами клиентов</p>
               </div>
-              <Dialog open={isCreateOrderDialogOpen} onOpenChange={setIsCreateOrderDialogOpen}>
-                <DialogTrigger asChild>
+              {isAdmin && (
+                <Dialog open={isCreateOrderDialogOpen} onOpenChange={setIsCreateOrderDialogOpen}>
+                  <DialogTrigger asChild>
                   <Button className="gap-2">
                     <Icon name="Plus" size={18} />
                     Создать заказ
@@ -1027,8 +1050,10 @@ const Index = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+              )}
 
-              <Dialog open={isEditOrderDialogOpen} onOpenChange={(open) => {
+              {isAdmin && (
+                <Dialog open={isEditOrderDialogOpen} onOpenChange={(open) => {
                 setIsEditOrderDialogOpen(open);
                 if (!open) {
                   setEditingOrder(null);
@@ -1146,6 +1171,7 @@ const Index = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
 
             <Card>
@@ -1207,14 +1233,16 @@ const Index = () => {
                         <TableCell className="text-muted-foreground">{order.date}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleEditOrder(order)}
-                              title="Редактировать"
-                            >
-                              <Icon name="Pencil" size={18} />
-                            </Button>
+                            {isAdmin && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditOrder(order)}
+                                title="Редактировать"
+                              >
+                                <Icon name="Pencil" size={18} />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -1500,6 +1528,10 @@ const Index = () => {
               </TabsContent>
             </Tabs>
           </div>
+        )}
+
+        {activeTab === 'users' && isAdmin && (
+          <UserManagement />
         )}
       </main>
     </div>
