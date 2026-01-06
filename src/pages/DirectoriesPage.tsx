@@ -100,25 +100,92 @@ export default function DirectoriesPage({ activeDirectory }: DirectoriesPageProp
 
   const loadData = async () => {
     setLoading(true);
-    setItems([]);
+    try {
+      const typeMap: Record<string, string> = {
+        'directories-contractors': 'contractors',
+        'directories-products': 'products',
+        'directories-services': 'services',
+        'directories-devices': 'devices',
+        'directories-accessories': 'accessories',
+        'directories-malfunctions': 'malfunctions',
+        'directories-units': 'units',
+        'directories-money': 'money',
+      };
+      const type = typeMap[activeDirectory];
+      if (type) {
+        const response = await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`);
+        const data = await response.json();
+        setItems(data || []);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Ошибка загрузки данных');
+    }
     setLoading(false);
   };
 
   const handleSave = async (formData: Record<string, string>) => {
-    if (editingItem) {
-      toast.success('Запись обновлена');
-    } else {
-      toast.success('Запись добавлена');
+    try {
+      const typeMap: Record<string, string> = {
+        'directories-contractors': 'contractors',
+        'directories-products': 'products',
+        'directories-services': 'services',
+        'directories-devices': 'devices',
+        'directories-accessories': 'accessories',
+        'directories-malfunctions': 'malfunctions',
+        'directories-units': 'units',
+        'directories-money': 'money',
+      };
+      const type = typeMap[activeDirectory];
+      
+      if (editingItem) {
+        await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}&id=${editingItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        toast.success('Запись обновлена');
+      } else {
+        await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        toast.success('Запись добавлена');
+      }
+      setIsDialogOpen(false);
+      setEditingItem(null);
+      loadData();
+    } catch (error) {
+      console.error('Error saving:', error);
+      toast.error('Ошибка сохранения');
     }
-    setIsDialogOpen(false);
-    setEditingItem(null);
-    loadData();
   };
 
   const handleDelete = async (id: number) => {
     if (confirm('Удалить эту запись?')) {
-      toast.success('Запись удалена');
-      loadData();
+      try {
+        const typeMap: Record<string, string> = {
+          'directories-contractors': 'contractors',
+          'directories-products': 'products',
+          'directories-services': 'services',
+          'directories-devices': 'devices',
+          'directories-accessories': 'accessories',
+          'directories-malfunctions': 'malfunctions',
+          'directories-units': 'units',
+          'directories-money': 'money',
+        };
+        const type = typeMap[activeDirectory];
+        
+        await fetch(`https://functions.poehali.dev/9ff1eb5a-8845-48c1-b870-ef4ea34f6d76?type=${type}&id=${id}`, {
+          method: 'DELETE',
+        });
+        toast.success('Запись удалена');
+        loadData();
+      } catch (error) {
+        console.error('Error deleting:', error);
+        toast.error('Ошибка удаления');
+      }
     }
   };
 
